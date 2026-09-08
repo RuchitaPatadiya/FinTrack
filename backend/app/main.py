@@ -3,9 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.core.config import settings
 from backend.app.core.database import engine, Base
 
+# Import models to ensure they are registered with SQLAlchemy Base metadata
+import backend.app.accounts.models  # noqa: F401
+from backend.app.accounts.routes import router as accounts_router
+
 # Create tables in database (runs on startup/import)
-# Note: For production with complex migrations, Alembic is recommended.
-# But for simple startup and zero-config local dev, this is perfect.
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -23,6 +25,9 @@ if settings.cors_origins:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+# Include API routers
+app.include_router(accounts_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def read_root():
