@@ -1,0 +1,50 @@
+import axios from 'axios'
+
+const api = axios.create({
+  baseURL: '/api/v1',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// Attach JWT access token to every outgoing request if present
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('fintrack_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// Handle 401 Unauthorized responses globally
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // If request fails with 401 outside of login/register, clear token
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !error.config.url.includes('/auth/login') &&
+      !error.config.url.includes('/auth/register')
+    ) {
+      localStorage.removeItem('fintrack_token')
+      localStorage.removeItem('fintrack_user')
+    }
+    return Promise.reject(error)
+  }
+)
+
+export const authAPI = {
+  register: (data) => api.post('/auth/register', data),
+  login: (data) => api.post('/auth/login', data),
+  googleAuth: (credential) => api.post('/auth/google', { credential }),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, newPassword) =>
+    api.post('/auth/reset-password', { token, new_password: newPassword }),
+  getProfile: () => api.get('/auth/me'),
+}
+
+export default api
