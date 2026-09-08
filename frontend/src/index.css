@@ -1,3 +1,70 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #090A0F;
+    color: #F1F5F9;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+/* Chic Glassmorphism & Surface Utilities */
+.glass-panel {
+  background: rgba(20, 23, 33, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-panel-hover:hover {
+  background: rgba(26, 30, 44, 0.85);
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: translateY(-2px);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Subtle Chic Background Ambient Gradients */
+.bg-chic-mesh {
+  background-image: 
+    radial-gradient(at 15% 15%, rgba(216, 180, 254, 0.07) 0px, transparent 50%),
+    radial-gradient(at 85% 20%, rgba(134, 239, 172, 0.06) 0px, transparent 50%),
+    radial-gradient(at 50% 60%, rgba(249, 168, 212, 0.05) 0px, transparent 50%),
+    radial-gradient(at 80% 85%, rgba(125, 211, 252, 0.06) 0px, transparent 50%),
+    radial-gradient(at 20% 85%, rgba(253, 224, 71, 0.05) 0px, transparent 50%);
+}
+
+/* Chic Grid lines background pattern */
+.bg-grid-chic {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+}
+
+/* Custom minimal scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #090A0F;
+}
+::-webkit-scrollbar-thumb {
+  background: #232736;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #363C52;
+}
