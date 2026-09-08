@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import LandingPage from './pages/LandingPage'
 import HomePage from './pages/HomePage'
+import ProfilePage from './pages/ProfilePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
@@ -12,7 +13,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage'
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ""
 
 function AppContent({ googleClientId }) {
-  const { user, isAuthenticated, loading } = useAuth()
+  const { user, isAuthenticated, loading, logout } = useAuth()
   const [view, setView] = useState(() => {
     // If URL has ?token=..., open reset-password view directly
     const params = new URLSearchParams(window.location.search)
@@ -53,6 +54,23 @@ function AppContent({ googleClientId }) {
               setIsDemoMode(false)
             }
             setView(targetView)
+          }}
+        />
+      )
+
+    case 'profile':
+      return (
+        <ProfilePage
+          user={activeUser}
+          onNavigate={(targetView) => {
+            if (targetView === 'landing') {
+              setIsDemoMode(false)
+            }
+            setView(targetView)
+          }}
+          onLogout={() => {
+            setIsDemoMode(false)
+            if (logout) logout()
           }}
         />
       )
