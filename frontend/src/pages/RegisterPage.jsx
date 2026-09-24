@@ -29,8 +29,9 @@ export default function RegisterPage({ onNavigate, googleClientId, onDemoMode })
     try {
       setLoading(true)
       await register(email, password, fullName)
+      onNavigate('home')
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Registration failed. Check your network or test Demo Mode if your PostgreSQL backend is not running yet.'
+      const msg = err.response?.data?.detail || 'Registration failed. Please verify your details.'
       setError(msg)
     } finally {
       setLoading(false)
@@ -42,6 +43,7 @@ export default function RegisterPage({ onNavigate, googleClientId, onDemoMode })
     try {
       setLoading(true)
       await loginWithGoogle(credentialResponse.credential)
+      onNavigate('home')
     } catch (err) {
       const msg = err.response?.data?.detail || 'Google sign-up failed. Please try again.'
       setError(msg)
@@ -59,7 +61,7 @@ export default function RegisterPage({ onNavigate, googleClientId, onDemoMode })
           className="inline-flex items-center space-x-1.5 text-xs text-slate-400 hover:text-white transition py-1 px-2.5 rounded-lg hover:bg-white/5"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          <span>Back to FinTrack</span>
+          <span>Back to Overview</span>
         </button>
 
         {onDemoMode && (
@@ -84,8 +86,8 @@ export default function RegisterPage({ onNavigate, googleClientId, onDemoMode })
               <Landmark className="h-6 w-6 text-pastel-pink" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-white font-display">Join FinTrack</h1>
-          <p className="text-slate-400 text-xs mt-1">Start tracking your wealth with aesthetic ease</p>
+          <h1 className="text-2xl font-bold text-white font-display">Create Account</h1>
+          <p className="text-slate-400 text-xs mt-1">Start tracking your income, expenses, and savings</p>
         </div>
 
         {/* Error Alert */}
