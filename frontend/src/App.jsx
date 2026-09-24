@@ -21,12 +21,12 @@ function AppContent({ googleClientId }) {
   })
   const [isDemoMode, setIsDemoMode] = useState(false)
 
-  // If user is authenticated, default to home dashboard unless explicitly navigating
+  // If user is authenticated, remove access to overview/demo landing page, login, and register
   useEffect(() => {
-    if (isAuthenticated && view === 'landing') {
+    if (isAuthenticated && (view === 'login' || view === 'register' || view === 'landing')) {
       setView('home')
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, view])
 
   if (loading) {
     return (
@@ -41,7 +41,7 @@ function AppContent({ googleClientId }) {
 
   const activeUser = isDemoMode
     ? { full_name: 'Demo Explorer', email: 'explorer@fintrack.app', auth_provider: 'demo' }
-    : user || { full_name: 'Aesthetic Spender', email: 'hello@fintrack.app', auth_provider: 'guest' }
+    : user || { full_name: 'Account Holder', email: 'user@fintrack.app', auth_provider: 'guest' }
 
   // Views switch
   switch (view) {
@@ -51,9 +51,15 @@ function AppContent({ googleClientId }) {
           user={activeUser}
           onNavigate={(targetView) => {
             if (targetView === 'landing') {
+              if (isAuthenticated) return
               setIsDemoMode(false)
             }
             setView(targetView)
+          }}
+          onLogout={() => {
+            setIsDemoMode(false)
+            if (logout) logout()
+            setView('landing')
           }}
         />
       )
@@ -64,6 +70,7 @@ function AppContent({ googleClientId }) {
           user={activeUser}
           onNavigate={(targetView) => {
             if (targetView === 'landing') {
+              if (isAuthenticated) return
               setIsDemoMode(false)
             }
             setView(targetView)
@@ -71,6 +78,7 @@ function AppContent({ googleClientId }) {
           onLogout={() => {
             setIsDemoMode(false)
             if (logout) logout()
+            setView('landing')
           }}
         />
       )
@@ -110,6 +118,8 @@ function AppContent({ googleClientId }) {
       return (
         <LandingPage
           onNavigate={setView}
+          isAuthenticated={isAuthenticated}
+          user={activeUser}
           onDemoMode={() => {
             setIsDemoMode(true)
             setView('home')

@@ -13,184 +13,236 @@ import {
   Search,
   Filter,
   Trash2,
-  Smile,
-  Coffee,
-  ShoppingBag,
-  Plane,
-  Home as HomeIcon,
-  Zap,
   CheckCircle2,
   X,
   User,
   ArrowLeft,
-  HelpCircle,
   BarChart3,
-  Sliders,
-  ChevronDown
+  CreditCard,
+  AlertTriangle,
+  LogOut,
+  Target,
+  Layers,
+  Percent
 } from 'lucide-react'
 
-// Default sample transactions with fun mood tags and pastel color tokens
+// Indian Rupee formatting helper
+export const formatINR = (val) => {
+  return Number(val || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
+
+export const formatINRLarge = (val) => {
+  return Number(val || 0).toLocaleString('en-IN')
+}
+
+// Professional financial categories
+export const TRANSACTION_CATEGORIES = [
+  { id: 'housing', label: 'Housing & Rent', icon: '🏠', color: 'purple' },
+  { id: 'groceries', label: 'Groceries & Provisions', icon: '🛒', color: 'mint' },
+  { id: 'dining', label: 'Food & Dining', icon: '🍽️', color: 'peach' },
+  { id: 'utilities', label: 'Utilities & Bills', icon: '⚡', color: 'sky' },
+  { id: 'transit', label: 'Transportation & Fuel', icon: '🚗', color: 'yellow' },
+  { id: 'shopping', label: 'Shopping', icon: '🛍️', color: 'pink' },
+  { id: 'entertainment', label: 'Entertainment & Subscriptions', icon: '🎬', color: 'purple' },
+  { id: 'health', label: 'Health & Pharmacy', icon: '💊', color: 'mint' },
+  { id: 'salary', label: 'Salary & Income', icon: '💼', color: 'mint', isIncome: true },
+  { id: 'investment', label: 'Investments & Dividends', icon: '📈', color: 'sky', isIncome: true },
+  { id: 'other', label: 'General / Other', icon: '📦', color: 'slate' }
+]
+
+export const PAYMENT_METHODS = [
+  'UPI (Google Pay / PhonePe / Paytm)',
+  'Credit Card',
+  'Debit Card',
+  'Net Banking',
+  'Cash',
+  'Brokerage'
+]
+
+// Professional initial transactions in Indian Rupees
 const INITIAL_TRANSACTIONS = [
   {
     id: 'tx-1',
-    title: 'Design Client Retainer',
-    category: 'Income',
+    title: 'Monthly Salary Deposit',
+    category: 'Salary & Income',
     emoji: '💼',
-    amount: 3200.00,
+    amount: 85000.00,
     type: 'income',
-    date: '2026-09-06',
-    mood: '#CareerGrowth',
-    moodColor: 'mint'
+    date: '2026-09-01',
+    paymentMethod: 'Net Banking'
   },
   {
     id: 'tx-2',
-    title: 'Artisan Matcha Latte & Croissant',
-    category: 'Cafe',
-    emoji: '🍵',
-    amount: 9.50,
+    title: 'Apartment Monthly Rent',
+    category: 'Housing & Rent',
+    emoji: '🏠',
+    amount: 24000.00,
     type: 'expense',
-    date: '2026-09-05',
-    mood: '#DailyHappiness',
-    moodColor: 'pink'
+    date: '2026-09-02',
+    paymentMethod: 'Net Banking'
   },
   {
     id: 'tx-3',
-    title: 'Tokyo Flight Deposit',
-    category: 'Travel',
-    emoji: '✈️',
-    amount: 450.00,
+    title: 'Blinkit & Nature Basket Groceries',
+    category: 'Groceries & Provisions',
+    emoji: '🛒',
+    amount: 5450.00,
     type: 'expense',
-    date: '2026-09-04',
-    mood: '#BucketList',
-    moodColor: 'yellow'
+    date: '2026-09-03',
+    paymentMethod: 'UPI (Google Pay / PhonePe / Paytm)'
   },
   {
     id: 'tx-4',
-    title: 'Figma Annual Subscription',
-    category: 'Tech',
-    emoji: '⚡',
-    amount: 144.00,
-    type: 'expense',
-    date: '2026-09-03',
-    mood: '#Essential',
-    moodColor: 'sky'
+    title: 'Freelance Consultation Retainer',
+    category: 'Salary & Income',
+    emoji: '💼',
+    amount: 22500.00,
+    type: 'income',
+    date: '2026-09-04',
+    paymentMethod: 'Bank Transfer'
   },
   {
     id: 'tx-5',
-    title: 'Zara Autumn Trench & Knit',
-    category: 'Shopping',
-    emoji: '🛍️',
-    amount: 189.20,
+    title: 'Electricity & Broadband Bill',
+    category: 'Utilities & Bills',
+    emoji: '⚡',
+    amount: 2850.00,
     type: 'expense',
-    date: '2026-09-02',
-    mood: '#TreatMyself',
-    moodColor: 'purple'
+    date: '2026-09-04',
+    paymentMethod: 'Credit Card'
   },
   {
     id: 'tx-6',
-    title: 'Late Night Ramen Bar',
-    category: 'Dining',
-    emoji: '🍜',
-    amount: 32.50,
+    title: 'Weekend Dining & Family Lunch',
+    category: 'Food & Dining',
+    emoji: '🍽️',
+    amount: 2650.00,
     type: 'expense',
-    date: '2026-09-01',
-    mood: '#WhyDidIBuyThis',
-    moodColor: 'pink'
+    date: '2026-09-05',
+    paymentMethod: 'UPI (Google Pay / PhonePe / Paytm)'
   },
   {
     id: 'tx-7',
-    title: 'Stock Dividend Payout',
-    category: 'Investments',
+    title: 'Metro Smart Card & Fuel Refill',
+    category: 'Transportation & Fuel',
+    emoji: '🚗',
+    amount: 2200.00,
+    type: 'expense',
+    date: '2026-09-05',
+    paymentMethod: 'UPI (Google Pay / PhonePe / Paytm)'
+  },
+  {
+    id: 'tx-8',
+    title: 'Nifty 50 Index Mutual Fund Dividend',
+    category: 'Investments & Dividends',
     emoji: '📈',
-    amount: 285.00,
+    amount: 3400.00,
     type: 'income',
-    date: '2026-08-30',
-    mood: '#FutureWealth',
-    moodColor: 'mint'
+    date: '2026-09-06',
+    paymentMethod: 'Brokerage'
   }
 ]
 
-const INITIAL_VAULTS = [
+// Professional initial savings goals in Indian Rupees
+const INITIAL_SAVINGS_GOALS = [
   {
-    id: 'vault-1',
-    name: 'Kyoto & Tokyo Vacation',
-    emoji: '✈️',
-    target: 2500,
-    current: 2200,
-    color: 'yellow',
-    tag: 'Autumn 2026'
-  },
-  {
-    id: 'vault-2',
-    name: 'M3 MacBook Max Setup',
-    emoji: '💻',
-    target: 2600,
-    current: 2050,
-    color: 'purple',
-    tag: 'Tech Upgrade'
-  },
-  {
-    id: 'vault-3',
-    name: 'Peace of Mind Cushion',
+    id: 'goal-1',
+    name: 'Emergency Fund (6 Months)',
     emoji: '🛡️',
-    target: 10000,
-    current: 8800,
+    target: 300000,
+    current: 210000,
     color: 'mint',
-    tag: 'Emergency Fund'
+    deadline: 'Dec 2026'
   },
   {
-    id: 'vault-4',
-    name: 'Lo-Fi Vinyl Collection',
-    emoji: '🎵',
-    target: 600,
-    current: 420,
-    color: 'pink',
-    tag: 'Hobby & Joy'
+    id: 'goal-2',
+    name: 'Home Down Payment Fund',
+    emoji: '🏠',
+    target: 1500000,
+    current: 850000,
+    color: 'sky',
+    deadline: 'Dec 2027'
+  },
+  {
+    id: 'goal-3',
+    name: 'Annual Vacation & Travel',
+    emoji: '✈️',
+    target: 80000,
+    current: 55000,
+    color: 'yellow',
+    deadline: 'Nov 2026'
+  },
+  {
+    id: 'goal-4',
+    name: 'Mutual Fund SIP Booster',
+    emoji: '📈',
+    target: 500000,
+    current: 320000,
+    color: 'purple',
+    deadline: 'Ongoing'
   }
 ]
 
-const CATEGORY_OPTIONS = [
-  { label: 'Food & Cafe', emoji: '☕', color: 'pink' },
-  { label: 'Dining Out', emoji: '🍜', color: 'peach' },
-  { label: 'Shopping & Style', emoji: '🛍️', color: 'purple' },
-  { label: 'Tech & Software', emoji: '⚡', color: 'sky' },
-  { label: 'Travel & Trips', emoji: '✈️', color: 'yellow' },
-  { label: 'Groceries & Home', emoji: '🥑', color: 'mint' },
-  { label: 'Salary / Freelance', emoji: '💼', color: 'mint' },
-  { label: 'Other Fun Spend', emoji: '✨', color: 'purple' }
-]
-
-const MOOD_OPTIONS = [
-  { label: '#DailyHappiness', color: 'pink' },
-  { label: '#TreatMyself', color: 'purple' },
-  { label: '#Essential', color: 'sky' },
-  { label: '#BucketList', color: 'yellow' },
-  { label: '#CareerGrowth', color: 'mint' },
-  { label: '#WhyDidIBuyThis', color: 'peach' }
-]
-
-export default function HomePage({ onNavigate, user }) {
+export default function HomePage({ onNavigate, user, onLogout }) {
   // Load stored transactions or default
   const [transactions, setTransactions] = useState(() => {
     try {
       const saved = localStorage.getItem('fintrack_tx_list')
-      return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        // Upgrade legacy USD dummy seed records to INR records
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id === 'tx-1' && parsed[0].amount < 10000) {
+          localStorage.setItem('fintrack_tx_list', JSON.stringify(INITIAL_TRANSACTIONS))
+          return INITIAL_TRANSACTIONS
+        }
+        return parsed
+      }
+      return INITIAL_TRANSACTIONS
     } catch {
       return INITIAL_TRANSACTIONS
     }
   })
 
-  // Load stored vaults or default
-  const [vaults, setVaults] = useState(() => {
+  // Load stored savings goals or default
+  const [savingsGoals, setSavingsGoals] = useState(() => {
     try {
       const saved = localStorage.getItem('fintrack_vaults')
-      return saved ? JSON.parse(saved) : INITIAL_VAULTS
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0 && (parsed[0].target < 50000 || parsed[0].id === 'vault-1')) {
+          localStorage.setItem('fintrack_vaults', JSON.stringify(INITIAL_SAVINGS_GOALS))
+          return INITIAL_SAVINGS_GOALS
+        }
+        return parsed
+      }
+      return INITIAL_SAVINGS_GOALS
     } catch {
-      return INITIAL_VAULTS
+      return INITIAL_SAVINGS_GOALS
     }
   })
 
-  // Persist transactions and vaults
+  // Budget settings from profile or default INR 50,000
+  const [budgetLimit, setBudgetLimit] = useState(() => {
+    try {
+      const savedPrefs = localStorage.getItem('fintrack_profile_prefs')
+      if (savedPrefs) {
+        const parsed = JSON.parse(savedPrefs)
+        if (parsed.monthlyBudgetLimit < 10000) return 50000
+        return parsed.monthlyBudgetLimit || 50000
+      }
+      return 50000
+    } catch {
+      return 50000
+    }
+  })
+
+  // Default currency is Indian Rupee ₹
+  const currencySymbol = '₹'
+
+  // Persist state
   useEffect(() => {
     try {
       localStorage.setItem('fintrack_tx_list', JSON.stringify(transactions))
@@ -199,177 +251,234 @@ export default function HomePage({ onNavigate, user }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem('fintrack_vaults', JSON.stringify(vaults))
+      localStorage.setItem('fintrack_vaults', JSON.stringify(savingsGoals))
     } catch {}
-  }, [vaults])
+  }, [savingsGoals])
 
   // UI state
   const [activeFilter, setActiveFilter] = useState('all') // 'all', 'expense', 'income'
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false)
-  const [isNewVaultModalOpen, setIsNewVaultModalOpen] = useState(false)
-  const [selectedVault, setSelectedVault] = useState(null)
-  const [depositAmount, setDepositAmount] = useState('50')
+  const [isNewGoalModalOpen, setIsNewGoalModalOpen] = useState(false)
+  const [selectedGoal, setSelectedGoal] = useState(null)
+  const [depositAmount, setDepositAmount] = useState('5000')
   const [toastMessage, setToastMessage] = useState('')
 
   // New Transaction Form State
   const [txType, setTxType] = useState('expense')
   const [txTitle, setTxTitle] = useState('')
   const [txAmount, setTxAmount] = useState('')
-  const [txCategory, setTxCategory] = useState(CATEGORY_OPTIONS[0].label)
-  const [txEmoji, setTxEmoji] = useState(CATEGORY_OPTIONS[0].emoji)
-  const [txMood, setTxMood] = useState(MOOD_OPTIONS[0].label)
-  const [txMoodColor, setTxMoodColor] = useState(MOOD_OPTIONS[0].color)
+  const [txCategory, setTxCategory] = useState(TRANSACTION_CATEGORIES[0].label)
+  const [txEmoji, setTxEmoji] = useState(TRANSACTION_CATEGORIES[0].icon)
+  const [txPaymentMethod, setTxPaymentMethod] = useState(PAYMENT_METHODS[0])
+  const [txDate, setTxDate] = useState(() => new Date().toISOString().split('T')[0])
 
-  // New Vault Form State
-  const [newVaultName, setNewVaultName] = useState('')
-  const [newVaultTarget, setNewVaultTarget] = useState('')
-  const [newVaultEmoji, setNewVaultEmoji] = useState('🌴')
-  const [newVaultColor, setNewVaultColor] = useState('yellow')
+  // New Goal Form State
+  const [newGoalName, setNewGoalName] = useState('')
+  const [newGoalTarget, setNewGoalTarget] = useState('')
+  const [newGoalInitial, setNewGoalInitial] = useState('')
+  const [newGoalDeadline, setNewGoalDeadline] = useState('')
+  const [newGoalEmoji, setNewGoalEmoji] = useState('🎯')
+  const [newGoalColor, setNewGoalColor] = useState('mint')
 
-  // Toast banner trigger helper
+  // Toast trigger
   const showToast = (msg) => {
     setToastMessage(msg)
-    setTimeout(() => setToastMessage(''), 3500)
+    setTimeout(() => setToastMessage(''), 3000)
   }
 
-  // Aggregate Calculations
-  const { totalIncome, totalExpenses, netBalance, savingsRate } = useMemo(() => {
+  // Aggregate Financial Calculations in INR
+  const { totalIncome, totalExpenses, netBalance, netSavings, savingsRate } = useMemo(() => {
     let inc = 0
     let exp = 0
     transactions.forEach((tx) => {
-      if (tx.type === 'income') inc += Number(tx.amount)
-      else exp += Number(tx.amount)
+      const amt = Number(tx.amount) || 0
+      if (tx.type === 'income') inc += amt
+      else exp += amt
     })
-    const balance = 21400.00 + (inc - exp) // baseline seed balance
-    const rate = inc > 0 ? Math.max(0, Math.round(((inc - exp) / inc) * 100)) : 0
+    const baseBalance = 250000.00
+    const calculatedBalance = baseBalance + (inc - exp)
+    const savings = inc - exp
+    const rate = inc > 0 ? Math.max(0, Math.round((savings / inc) * 100)) : 0
+
     return {
       totalIncome: inc,
       totalExpenses: exp,
-      netBalance: balance,
+      netBalance: calculatedBalance,
+      netSavings: savings,
       savingsRate: rate
     }
+  }, [transactions])
+
+  // Dynamic Category Breakdown from actual expenses
+  const categoryBreakdown = useMemo(() => {
+    const expenseMap = {}
+    let totalExp = 0
+
+    transactions
+      .filter((t) => t.type === 'expense')
+      .forEach((t) => {
+        const amt = Number(t.amount) || 0
+        totalExp += amt
+        const cat = t.category || 'General / Other'
+        expenseMap[cat] = (expenseMap[cat] || 0) + amt
+      })
+
+    if (totalExp === 0) return []
+
+    return Object.entries(expenseMap)
+      .map(([category, amount]) => {
+        const pct = Math.round((amount / totalExp) * 100)
+        const catObj = TRANSACTION_CATEGORIES.find((c) => c.label === category)
+        return {
+          category,
+          amount,
+          percentage: pct,
+          color: catObj?.color || 'slate',
+          icon: catObj?.icon || '📦'
+        }
+      })
+      .sort((a, b) => b.amount - a.amount)
   }, [transactions])
 
   // Filtered Transactions
   const filteredTransactions = useMemo(() => {
     return transactions.filter((tx) => {
       const matchesType = activeFilter === 'all' || tx.type === activeFilter
+      const matchesCategory =
+        selectedCategoryFilter === 'all' || tx.category === selectedCategoryFilter
       const matchesSearch =
         tx.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         tx.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (tx.mood && tx.mood.toLowerCase().includes(searchQuery.toLowerCase()))
-      return matchesType && matchesSearch
+        (tx.paymentMethod && tx.paymentMethod.toLowerCase().includes(searchQuery.toLowerCase()))
+
+      return matchesType && matchesCategory && matchesSearch
     })
-  }, [transactions, activeFilter, searchQuery])
+  }, [transactions, activeFilter, selectedCategoryFilter, searchQuery])
 
   // Handle Add Transaction Submit
   const handleAddTransaction = (e) => {
     e.preventDefault()
     const numAmount = parseFloat(txAmount)
     if (isNaN(numAmount) || numAmount <= 0) {
-      alert('Please enter a valid amount greater than $0')
+      alert('Please enter a valid amount greater than ₹0')
       return
     }
 
     const newTx = {
       id: `tx-${Date.now()}`,
-      title: txTitle.trim() || (txType === 'income' ? 'Income Payment' : 'Card Spend'),
+      title: txTitle.trim() || (txType === 'income' ? 'Income Deposit' : 'Expense Payment'),
       category: txCategory,
       emoji: txEmoji,
       amount: numAmount,
       type: txType,
-      date: new Date().toISOString().split('T')[0],
-      mood: txMood,
-      moodColor: txMoodColor
+      date: txDate || new Date().toISOString().split('T')[0],
+      paymentMethod: txPaymentMethod
     }
 
     setTransactions([newTx, ...transactions])
     setIsAddModalOpen(false)
     setTxTitle('')
     setTxAmount('')
-    showToast(`✨ Successfully logged ${newTx.type === 'income' ? '+' : '-'}$${numAmount.toFixed(2)} (${newTx.title})`)
+    showToast(`Logged ${newTx.type === 'income' ? '+' : '-'}${currencySymbol}${formatINR(numAmount)} (${newTx.title})`)
   }
 
-  // Handle Vault Deposit
-  const handleDepositToVault = (e) => {
+  // Handle Goal Deposit
+  const handleDepositToGoal = (e) => {
     e.preventDefault()
     const dep = parseFloat(depositAmount)
-    if (!selectedVault || isNaN(dep) || dep <= 0) return
+    if (!selectedGoal || isNaN(dep) || dep <= 0) return
 
-    setVaults(
-      vaults.map((v) =>
-        v.id === selectedVault.id ? { ...v, current: Math.min(v.target, v.current + dep) } : v
-      )
+    setSavingsGoals(
+      savingsGoals.map((g) => {
+        if (g.id === selectedGoal.id) {
+          return { ...g, current: Number(g.current) + dep }
+        }
+        return g
+      })
     )
 
-    // Log as transaction to vault
-    const newTx = {
+    // Also record as a savings transfer expense
+    const savingsTx = {
       id: `tx-${Date.now()}`,
-      title: `Deposit to ${selectedVault.name}`,
-      category: 'Savings',
-      emoji: selectedVault.emoji,
+      title: `Transfer to ${selectedGoal.name}`,
+      category: 'Investments & Dividends',
+      emoji: selectedGoal.emoji || '🎯',
       amount: dep,
       type: 'expense',
       date: new Date().toISOString().split('T')[0],
-      mood: '#BucketList',
-      moodColor: 'yellow'
+      paymentMethod: 'Bank Transfer'
     }
-    setTransactions([newTx, ...transactions])
+    setTransactions([savingsTx, ...transactions])
 
     setIsDepositModalOpen(false)
-    showToast(`🎯 Stashed $${dep} into ${selectedVault.name}!`)
+    setDepositAmount('5000')
+    showToast(`Deposited ${currencySymbol}${formatINR(dep)} to ${selectedGoal.name}`)
   }
 
-  // Handle Add New Vault
-  const handleCreateVault = (e) => {
+  // Handle Create New Goal
+  const handleCreateGoal = (e) => {
     e.preventDefault()
-    const targetNum = parseFloat(newVaultTarget)
-    if (!newVaultName.trim() || isNaN(targetNum) || targetNum <= 0) return
+    const target = parseFloat(newGoalTarget)
+    const initial = parseFloat(newGoalInitial) || 0
 
-    const newV = {
-      id: `vault-${Date.now()}`,
-      name: newVaultName.trim(),
-      emoji: newVaultEmoji,
-      target: targetNum,
-      current: 0,
-      color: newVaultColor,
-      tag: 'New Goal'
+    if (!newGoalName.trim() || isNaN(target) || target <= 0) {
+      alert('Please enter a valid goal name and target amount')
+      return
     }
 
-    setVaults([...vaults, newV])
-    setIsNewVaultModalOpen(false)
-    setNewVaultName('')
-    setNewVaultTarget('')
-    showToast(`🌱 New Vault "${newV.name}" created!`)
+    const created = {
+      id: `goal-${Date.now()}`,
+      name: newGoalName.trim(),
+      emoji: newGoalEmoji,
+      target: target,
+      current: initial,
+      color: newGoalColor,
+      deadline: newGoalDeadline.trim() || 'Flexible'
+    }
+
+    setSavingsGoals([...savingsGoals, created])
+    setIsNewGoalModalOpen(false)
+    setNewGoalName('')
+    setNewGoalTarget('')
+    setNewGoalInitial('')
+    setNewGoalDeadline('')
+    showToast(`Created savings goal: "${created.name}"`)
   }
 
-  // Delete Transaction
+  // Delete transaction
   const handleDeleteTx = (id) => {
-    setTransactions(transactions.filter((t) => t.id !== id))
-    showToast('Transaction removed.')
+    if (window.confirm('Delete this transaction record?')) {
+      setTransactions(transactions.filter((t) => t.id !== id))
+      showToast('Transaction removed')
+    }
   }
+
+  // Budget calculations
+  const budgetSpentPct = budgetLimit > 0 ? Math.min(100, Math.round((totalExpenses / budgetLimit) * 100)) : 0
+  const budgetRemaining = Math.max(0, budgetLimit - totalExpenses)
 
   return (
     <div className="min-h-screen bg-[#090A0F] text-slate-100 bg-chic-mesh bg-grid-chic pb-24 relative selection:bg-pastel-pink selection:text-black">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 glass-panel border border-pastel-mint/50 text-white px-4 py-3 rounded-2xl shadow-glow-mint flex items-center space-x-2 animate-float-slow">
-          <Sparkles className="h-4 w-4 text-pastel-mint animate-spin" />
+          <Sparkles className="h-4 w-4 text-pastel-mint" />
           <span className="text-xs font-semibold">{toastMessage}</span>
         </div>
       )}
 
-      {/* TOP DASHBOARD NAVIGATION BAR */}
+      {/* TOP DASHBOARD NAVIGATION BAR (LOGGED-IN: NO OVERVIEW DEMO SECTION) */}
       <header className="sticky top-0 z-40 glass-panel border-b border-white/5 px-4 sm:px-8 py-3.5 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Logo & Page Switcher */}
+          {/* Logo & Navigation */}
           <div className="flex items-center space-x-4">
             <div
               className="flex items-center space-x-2.5 cursor-pointer group"
-              onClick={() => onNavigate('landing')}
-              title="Return to Landing Page"
+              onClick={() => onNavigate('home')}
+              title="FinTrack Dashboard"
             >
               <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-pastel-mint via-pastel-sky to-pastel-purple p-[1.5px] shadow-glow-mint group-hover:scale-105 transition-transform">
                 <div className="w-full h-full bg-[#0E1017] rounded-[10px] flex items-center justify-center">
@@ -381,53 +490,60 @@ export default function HomePage({ onNavigate, user }) {
               </span>
             </div>
 
-            {/* Quick Page Tabs */}
+            {/* Logged-In Navigation Tabs: Only Dashboard and Profile (Overview removed) */}
             <div className="hidden md:flex items-center space-x-1 bg-white/5 border border-white/10 p-1 rounded-full text-xs font-medium">
-              <button
-                onClick={() => onNavigate('landing')}
-                className="px-3 py-1 rounded-full text-slate-400 hover:text-white transition"
-              >
-                Landing
-              </button>
-              <button className="px-3 py-1 rounded-full bg-white/10 text-pastel-mint font-semibold shadow-sm flex items-center space-x-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-pastel-mint animate-pulse" />
-                <span>Home Dashboard</span>
+              <button className="px-3.5 py-1 rounded-full bg-white/10 text-pastel-mint font-semibold shadow-sm flex items-center space-x-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-pastel-mint" />
+                <span>Dashboard</span>
               </button>
               <button
                 onClick={() => onNavigate('profile')}
-                className="px-3 py-1 rounded-full text-slate-400 hover:text-pastel-purple transition flex items-center space-x-1"
+                className="px-3.5 py-1 rounded-full text-slate-400 hover:text-white transition flex items-center space-x-1"
               >
-                <span>Profile</span>
-                <span className="text-[10px] bg-pastel-purple/20 text-pastel-purple px-1.5 rounded-full font-mono">Page 3</span>
+                <span>Profile & Settings</span>
               </button>
             </div>
           </div>
 
           {/* Right Action Bar */}
-          <div className="flex items-center space-x-3">
-            {/* Active Streak Pill */}
-            <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-pastel-yellow/10 border border-pastel-yellow/20 text-pastel-yellow text-xs font-semibold">
-              <span>🔥</span>
-              <span>12-Day Streak</span>
-            </div>
-
+          <div className="flex items-center space-x-2 sm:space-x-3">
             {/* + Add Transaction Button */}
             <button
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => {
+                setTxType('expense')
+                setTxCategory(TRANSACTION_CATEGORIES[0].label)
+                setTxEmoji(TRANSACTION_CATEGORIES[0].icon)
+                setIsAddModalOpen(true)
+              }}
               className="px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-pastel-mint to-pastel-sky text-slate-950 font-bold text-xs shadow-glow-mint hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center space-x-1.5"
             >
               <Plus className="h-3.5 w-3.5 stroke-[3]" />
               <span>Add Transaction</span>
             </button>
 
-            {/* User Avatar */}
+            {/* User Profile Avatar */}
             <button
               onClick={() => onNavigate('profile')}
               className="h-9 w-9 rounded-xl bg-pastel-purple/20 border border-pastel-purple/30 text-pastel-purple flex items-center justify-center font-bold text-xs uppercase hover:ring-2 hover:ring-pastel-purple/50 transition"
-              title="Go to User Profile (Page 3)"
+              title="Go to User Profile & Settings"
             >
-              {user?.full_name ? user.full_name.charAt(0) : 'F'}
+              {user?.full_name ? user.full_name.charAt(0) : 'U'}
             </button>
+
+            {/* Sign Out Button */}
+            {onLogout && (
+              <button
+                onClick={() => {
+                  onLogout()
+                  onNavigate('landing')
+                }}
+                className="h-9 px-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-300 flex items-center space-x-1 text-xs font-semibold transition active:scale-95"
+                title="Sign Out of Session"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -438,176 +554,209 @@ export default function HomePage({ onNavigate, user }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center space-x-2 text-xs font-mono text-pastel-mint font-semibold uppercase tracking-wider mb-1">
-              <span>✨ Live Personal Wealth Hub</span>
+              <span>Financial Dashboard</span>
               <span>•</span>
-              <span className="text-slate-400">September 2026</span>
+              <span className="text-slate-400">INR (₹) Ledger</span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold text-white font-display tracking-tight">
-              Hello, {user?.full_name || 'Aesthetic Spender'} 🌿
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-display tracking-tight">
+              Welcome back, {user?.full_name || 'Account Holder'}
             </h1>
           </div>
 
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setIsNewVaultModalOpen(true)}
+              onClick={() => setIsNewGoalModalOpen(true)}
               className="px-3.5 py-2 rounded-xl glass-panel hover:bg-white/10 text-xs font-semibold text-slate-200 border border-white/10 transition flex items-center space-x-1.5"
             >
-              <PiggyBank className="h-3.5 w-3.5 text-pastel-yellow" />
-              <span>+ New Vault</span>
+              <Target className="h-3.5 w-3.5 text-pastel-yellow" />
+              <span>+ New Savings Goal</span>
             </button>
-            <div className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-400 font-mono">
-              Balance Isolated 🔒
-            </div>
           </div>
         </div>
 
-        {/* METRICS SUMMARY ROW */}
+        {/* METRICS SUMMARY ROW (INDIAN RUPEES) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Total Net Balance */}
           <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-white/10 hover:border-pastel-mint/30 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-28 h-28 bg-pastel-mint/5 rounded-full blur-2xl pointer-events-none" />
             <div className="flex items-center justify-between text-xs text-slate-400 mb-3">
               <span className="font-semibold uppercase tracking-wider">Total Net Balance</span>
-              <div className="p-2 rounded-xl bg-pastel-mint/10 text-pastel-mint group-hover:scale-110 transition">
+              <div className="p-2 rounded-xl bg-pastel-mint/10 text-pastel-mint">
                 <Wallet className="h-4 w-4" />
               </div>
             </div>
-            <div className="text-3xl sm:text-4xl font-extrabold text-white font-display tracking-tight">
-              ${netBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div className="text-3xl font-extrabold text-white font-display tracking-tight">
+              {currencySymbol}{formatINR(netBalance)}
             </div>
-            <div className="mt-3 flex items-center space-x-1.5 text-xs text-pastel-mint font-semibold">
-              <TrendingUp className="h-3.5 w-3.5" />
-              <span>+$3,420 vs last month (14.2%)</span>
+            <div className="mt-3 flex items-center space-x-1.5 text-xs text-slate-400">
+              <span>Total Available Liquid Funds</span>
             </div>
           </div>
 
-          {/* Card 2: Monthly Inflow */}
+          {/* Card 2: Total Monthly Income */}
           <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-white/10 hover:border-pastel-sky/30 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-28 h-28 bg-pastel-sky/5 rounded-full blur-2xl pointer-events-none" />
             <div className="flex items-center justify-between text-xs text-slate-400 mb-3">
-              <span className="font-semibold uppercase tracking-wider">Total Income</span>
-              <div className="p-2 rounded-xl bg-pastel-sky/10 text-pastel-sky group-hover:scale-110 transition">
+              <span className="font-semibold uppercase tracking-wider">Monthly Income</span>
+              <div className="p-2 rounded-xl bg-pastel-sky/10 text-pastel-sky">
                 <ArrowDownLeft className="h-4 w-4" />
               </div>
             </div>
-            <div className="text-3xl sm:text-4xl font-extrabold text-pastel-sky font-display tracking-tight">
-              ${totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div className="text-3xl font-extrabold text-pastel-sky font-display tracking-tight">
+              {currencySymbol}{formatINR(totalIncome)}
             </div>
-            <div className="mt-3 text-xs text-slate-400">
-              Salary + Dividends + Retainers
+            <div className="mt-3 flex items-center space-x-1.5 text-xs text-pastel-mint font-medium">
+              <TrendingUp className="h-3.5 w-3.5" />
+              <span>{transactions.filter((t) => t.type === 'income').length} deposits credited</span>
             </div>
           </div>
 
-          {/* Card 3: Monthly Expenses */}
+          {/* Card 3: Total Expenses */}
           <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-white/10 hover:border-pastel-pink/30 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-28 h-28 bg-pastel-pink/5 rounded-full blur-2xl pointer-events-none" />
             <div className="flex items-center justify-between text-xs text-slate-400 mb-3">
-              <span className="font-semibold uppercase tracking-wider">Total Expenses</span>
-              <div className="p-2 rounded-xl bg-pastel-pink/10 text-pastel-pink group-hover:scale-110 transition">
+              <span className="font-semibold uppercase tracking-wider">Monthly Expenses</span>
+              <div className="p-2 rounded-xl bg-pastel-pink/10 text-pastel-pink">
                 <ArrowUpRight className="h-4 w-4" />
               </div>
             </div>
-            <div className="text-3xl sm:text-4xl font-extrabold text-pastel-pink font-display tracking-tight">
-              ${totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div className="text-3xl font-extrabold text-pastel-pink font-display tracking-tight">
+              {currencySymbol}{formatINR(totalExpenses)}
             </div>
-            <div className="mt-3 flex items-center space-x-1.5 text-xs text-pastel-mint font-medium">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              <span>Under $2,500 monthly ceiling</span>
+            <div className="mt-3 text-xs text-slate-400">
+              {transactions.filter((t) => t.type === 'expense').length} debits recorded this cycle
             </div>
           </div>
 
-          {/* Card 4: Savings Rate */}
+          {/* Card 4: Net Savings & Rate */}
           <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-white/10 hover:border-pastel-yellow/30 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-28 h-28 bg-pastel-yellow/5 rounded-full blur-2xl pointer-events-none" />
             <div className="flex items-center justify-between text-xs text-slate-400 mb-3">
-              <span className="font-semibold uppercase tracking-wider">Savings Rate</span>
-              <div className="p-2 rounded-xl bg-pastel-yellow/10 text-pastel-yellow group-hover:scale-110 transition">
+              <span className="font-semibold uppercase tracking-wider">Monthly Net Savings</span>
+              <div className="p-2 rounded-xl bg-pastel-yellow/10 text-pastel-yellow">
                 <PiggyBank className="h-4 w-4" />
               </div>
             </div>
-            <div className="text-3xl sm:text-4xl font-extrabold text-pastel-yellow font-display tracking-tight">
-              {savingsRate}%
+            <div className="text-3xl font-extrabold text-pastel-yellow font-display tracking-tight">
+              {currencySymbol}{formatINR(netSavings)}
             </div>
-            <div className="mt-3 text-xs text-slate-300 flex items-center space-x-1">
-              <span>🎯</span>
-              <span>Ahead of 35% target</span>
+            <div className="mt-3 flex items-center space-x-1 text-xs text-slate-300">
+              <Percent className="h-3.5 w-3.5 text-pastel-yellow" />
+              <span>{savingsRate}% Savings Rate</span>
             </div>
           </div>
         </div>
 
-        {/* PASTEL GOAL VAULTS SECTION */}
+        {/* MONTHLY BUDGET PROGRESS BAR */}
+        <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center space-x-2">
+                <span>Monthly Spending Budget</span>
+                {budgetSpentPct >= 90 && (
+                  <span className="inline-flex items-center space-x-1 text-xs text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/30">
+                    <AlertTriangle className="h-3 w-3" />
+                    <span>Near Ceiling</span>
+                  </span>
+                )}
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {currencySymbol}{formatINR(totalExpenses)} spent of {currencySymbol}{formatINR(budgetLimit)} monthly budget limit
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="text-xs font-mono text-slate-400">Remaining Buffer: </span>
+              <span className="text-sm font-bold font-mono text-pastel-mint">
+                {currencySymbol}{formatINR(budgetRemaining)}
+              </span>
+            </div>
+          </div>
+
+          <div className="w-full h-3 rounded-full bg-white/5 border border-white/10 overflow-hidden relative">
+            <div
+              className={`h-full transition-all duration-500 rounded-full ${
+                budgetSpentPct > 90 ? 'bg-rose-500' : budgetSpentPct > 75 ? 'bg-pastel-yellow' : 'bg-pastel-mint'
+              }`}
+              style={{ width: `${budgetSpentPct}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
+            <span>0%</span>
+            <span>{budgetSpentPct}% Utilized</span>
+            <span>100% ({currencySymbol}{formatINRLarge(budgetLimit)})</span>
+          </div>
+        </div>
+
+        {/* SAVINGS GOALS SECTION */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <h2 className="text-lg sm:text-xl font-bold text-white font-display">
-                Pastel Goal Vaults
+                Savings Goals
               </h2>
-              <span className="text-xs bg-pastel-yellow/10 text-pastel-yellow border border-pastel-yellow/30 px-2 py-0.5 rounded-full font-mono">
-                {vaults.length} Active
+              <span className="text-xs bg-pastel-mint/10 text-pastel-mint border border-pastel-mint/30 px-2 py-0.5 rounded-full font-mono">
+                {savingsGoals.length} Active Goals
               </span>
             </div>
             <button
-              onClick={() => setIsNewVaultModalOpen(true)}
-              className="text-xs text-pastel-yellow hover:underline flex items-center space-x-1"
+              onClick={() => setIsNewGoalModalOpen(true)}
+              className="text-xs text-pastel-mint hover:underline flex items-center space-x-1 font-semibold"
             >
               <Plus className="h-3 w-3" />
-              <span>Create Goal</span>
+              <span>New Goal</span>
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {vaults.map((vault) => {
-              const pct = Math.min(100, Math.round((vault.current / vault.target) * 100))
+            {savingsGoals.map((goal) => {
+              const pct = Math.min(100, Math.round((goal.current / goal.target) * 100))
               const colorClasses = {
-                yellow: { border: 'hover:border-pastel-yellow/40', fill: 'bg-pastel-yellow', text: 'text-pastel-yellow' },
                 mint: { border: 'hover:border-pastel-mint/40', fill: 'bg-pastel-mint', text: 'text-pastel-mint' },
-                pink: { border: 'hover:border-pastel-pink/40', fill: 'bg-pastel-pink', text: 'text-pastel-pink' },
+                sky: { border: 'hover:border-pastel-sky/40', fill: 'bg-pastel-sky', text: 'text-pastel-sky' },
+                yellow: { border: 'hover:border-pastel-yellow/40', fill: 'bg-pastel-yellow', text: 'text-pastel-yellow' },
                 purple: { border: 'hover:border-pastel-purple/40', fill: 'bg-pastel-purple', text: 'text-pastel-purple' }
-              }[vault.color] || { border: 'hover:border-pastel-yellow/40', fill: 'bg-pastel-yellow', text: 'text-pastel-yellow' }
+              }[goal.color] || { border: 'hover:border-pastel-mint/40', fill: 'bg-pastel-mint', text: 'text-pastel-mint' }
 
               return (
                 <div
-                  key={vault.id}
+                  key={goal.id}
                   className={`glass-panel p-5 rounded-3xl border border-white/10 ${colorClasses.border} transition-all duration-200 flex flex-col justify-between`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-2xl">{vault.emoji}</span>
+                      <span className="text-2xl">{goal.emoji}</span>
                       <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-400">
-                        {vault.tag}
+                        {goal.deadline}
                       </span>
                     </div>
                     <h3 className="text-sm font-bold text-white mb-1 line-clamp-1">
-                      {vault.name}
+                      {goal.name}
                     </h3>
                     <div className="flex items-baseline justify-between text-xs mb-3">
                       <span className={`font-extrabold ${colorClasses.text} text-sm font-mono`}>
-                        ${vault.current.toLocaleString()}
+                        {currencySymbol}{formatINRLarge(goal.current)}
                       </span>
-                      <span className="text-slate-400 text-[11px]">
-                        target ${vault.target.toLocaleString()}
+                      <span className="text-slate-400 text-[11px] font-mono">
+                        Target: {currencySymbol}{formatINRLarge(goal.target)}
                       </span>
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="w-full bg-[#181D2C] h-2 rounded-full overflow-hidden mb-2">
+                    <div className="w-full h-2 rounded-full bg-white/5 border border-white/10 overflow-hidden mb-3">
                       <div
-                        className={`${colorClasses.fill} h-full rounded-full transition-all duration-500`}
+                        className={`h-full ${colorClasses.fill} transition-all duration-300 rounded-full`}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-white/5 flex items-center justify-between mt-2">
-                    <span className="text-[11px] font-bold text-slate-300">{pct}% Complete</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                    <span className="text-xs font-mono text-slate-400">{pct}% Funded</span>
                     <button
                       onClick={() => {
-                        setSelectedVault(vault)
+                        setSelectedGoal(goal)
                         setIsDepositModalOpen(true)
                       }}
-                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/15 text-white border border-white/10 transition"
+                      className="text-[11px] font-bold px-3 py-1 rounded-lg bg-white/5 hover:bg-white/15 text-white border border-white/10 transition"
                     >
-                      + Stash
+                      + Deposit
                     </button>
                   </div>
                 </div>
@@ -616,21 +765,21 @@ export default function HomePage({ onNavigate, user }) {
           </div>
         </section>
 
-        {/* TWO COLUMN SECTION: ANALYTICS + RECENT TRANSACTIONS */}
+        {/* TWO COLUMN SECTION: TRANSACTIONS & REAL EXPENSE BREAKDOWN */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* LEFT: RECENT TRANSACTIONS FEED (7 Cols) */}
+          {/* LEFT: RECENT TRANSACTIONS LEDGER (7 Cols) */}
           <div className="lg:col-span-7 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center space-x-2">
                 <h2 className="text-lg sm:text-xl font-bold text-white font-display">
-                  Recent Activity
+                  Recent Transactions
                 </h2>
                 <span className="text-xs text-slate-400 font-mono">
-                  ({filteredTransactions.length} items)
+                  ({filteredTransactions.length} records)
                 </span>
               </div>
 
-              {/* Filter Pills */}
+              {/* Type Filter Pills */}
               <div className="flex items-center space-x-1.5 bg-white/5 p-1 rounded-xl border border-white/10 text-xs">
                 {['all', 'expense', 'income'].map((f) => (
                   <button
@@ -642,41 +791,50 @@ export default function HomePage({ onNavigate, user }) {
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    {f === 'all' ? 'All' : f === 'expense' ? 'Expenses 💸' : 'Income 🌿'}
+                    {f === 'all' ? 'All' : f === 'expense' ? 'Expenses' : 'Income'}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
-              <input
-                type="text"
-                placeholder="Search transactions by merchant, category, or #mood..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-[#121623] border border-white/10 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pastel-mint transition"
-              />
+            {/* Search & Category Filter Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div className="sm:col-span-7 relative">
+                <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Search by description or merchant..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#121623] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pastel-mint transition"
+                />
+              </div>
+
+              <div className="sm:col-span-5">
+                <select
+                  value={selectedCategoryFilter}
+                  onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-[#121623] border border-white/10 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-pastel-mint transition"
+                >
+                  <option value="all">All Categories</option>
+                  {TRANSACTION_CATEGORIES.map((c) => (
+                    <option key={c.label} value={c.label}>
+                      {c.icon} {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Transactions List */}
             <div className="space-y-2.5">
               {filteredTransactions.length === 0 ? (
                 <div className="glass-panel p-8 rounded-3xl border border-white/5 text-center text-slate-400 text-xs">
-                  No matching transactions found. Click <strong>+ Add Transaction</strong> to record one!
+                  No matching transactions recorded. Click <strong>+ Add Transaction</strong> to log one!
                 </div>
               ) : (
                 filteredTransactions.map((tx) => {
                   const isIncome = tx.type === 'income'
-                  const moodBadgeColor = {
-                    pink: 'bg-pastel-pink/15 text-pastel-pink border-pastel-pink/30',
-                    mint: 'bg-pastel-mint/15 text-pastel-mint border-pastel-mint/30',
-                    yellow: 'bg-pastel-yellow/15 text-pastel-yellow border-pastel-yellow/30',
-                    purple: 'bg-pastel-purple/15 text-pastel-purple border-pastel-purple/30',
-                    sky: 'bg-pastel-sky/15 text-pastel-sky border-pastel-sky/30',
-                    peach: 'bg-pastel-peach/15 text-pastel-peach border-pastel-peach/30'
-                  }[tx.moodColor || 'pink']
 
                   return (
                     <div
@@ -685,22 +843,23 @@ export default function HomePage({ onNavigate, user }) {
                     >
                       <div className="flex items-center space-x-3.5">
                         <div className="h-10 w-10 rounded-xl bg-[#171B2A] border border-white/10 flex items-center justify-center text-lg flex-shrink-0">
-                          {tx.emoji || (isIncome ? '💸' : '☕')}
+                          {tx.emoji || (isIncome ? '💼' : '🛒')}
                         </div>
                         <div>
-                          <div className="flex items-center space-x-2">
-                            <h4 className="text-sm font-bold text-white group-hover:text-pastel-mint transition">
-                              {tx.title}
-                            </h4>
-                            {tx.mood && (
-                              <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${moodBadgeColor}`}>
-                                {tx.mood}
-                              </span>
+                          <h4 className="text-sm font-bold text-white group-hover:text-pastel-mint transition">
+                            {tx.title}
+                          </h4>
+                          <div className="flex items-center space-x-2 text-[11px] text-slate-400 mt-0.5">
+                            <span>{tx.category}</span>
+                            <span>•</span>
+                            <span>{tx.date}</span>
+                            {tx.paymentMethod && (
+                              <>
+                                <span>•</span>
+                                <span className="font-mono text-slate-400">{tx.paymentMethod}</span>
+                              </>
                             )}
                           </div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">
-                            {tx.category} • {tx.date}
-                          </p>
                         </div>
                       </div>
 
@@ -710,7 +869,7 @@ export default function HomePage({ onNavigate, user }) {
                             isIncome ? 'text-pastel-mint' : 'text-pastel-pink'
                           }`}
                         >
-                          {isIncome ? '+' : '-'}${Number(tx.amount).toFixed(2)}
+                          {isIncome ? '+' : '-'}{currencySymbol}{formatINR(tx.amount)}
                         </span>
                         <button
                           onClick={() => handleDeleteTx(tx.id)}
@@ -727,83 +886,95 @@ export default function HomePage({ onNavigate, user }) {
             </div>
           </div>
 
-          {/* RIGHT: SMART INSIGHTS & CASHFLOW WAVE (5 Cols) */}
+          {/* RIGHT: DYNAMIC CATEGORY BREAKDOWN & SUMMARY (5 Cols) */}
           <div className="lg:col-span-5 space-y-6">
-            {/* AI Vibe & Forecast Card */}
-            <div className="bg-gradient-to-br from-[#171C2E] to-[#121524] p-6 rounded-3xl border border-pastel-purple/30 shadow-glow-purple relative overflow-hidden">
-              <div className="flex items-center space-x-2 mb-3 text-pastel-purple text-xs font-semibold">
-                <Sparkles className="h-4 w-4" />
-                <span>AI Cashflow Vibe Check</span>
-              </div>
-              <h3 className="text-base font-bold text-white font-display mb-1.5">
-                On track for +$1,840 Monthly Surplus ✨
-              </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                You’ve cut down on impulse deliveries by 22% this week! At your current burn rate, your <strong>Tokyo Vacation Vault</strong> will be 100% funded before next Friday.
-              </p>
-              <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono text-pastel-mint">
-                <span>Healthy Buffer: Safe</span>
-                <span>Burn Rate: Calm</span>
-              </div>
-            </div>
-
-            {/* Category Breakdown (Pastel Rings) */}
+            {/* Category Expense Breakdown */}
             <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
               <div className="flex items-center justify-between text-xs font-semibold">
-                <span className="text-white font-display text-sm">Where the Money Flows</span>
-                <span className="text-slate-400 font-mono">This Month</span>
+                <span className="text-white font-display text-sm">Expense Breakdown by Category</span>
+                <span className="text-slate-400 font-mono">Real-Time</span>
               </div>
 
-              {/* Visual Segment Bar */}
-              <div className="w-full h-3 rounded-full bg-[#181C2B] overflow-hidden flex">
-                <div className="bg-pastel-pink h-full" style={{ width: '42%' }} title="Food & Cafe (42%)" />
-                <div className="bg-pastel-purple h-full" style={{ width: '28%' }} title="Shopping & Style (28%)" />
-                <div className="bg-pastel-sky h-full" style={{ width: '18%' }} title="Tech & Subscriptions (18%)" />
-                <div className="bg-pastel-yellow h-full" style={{ width: '12%' }} title="Travel (12%)" />
-              </div>
+              {categoryBreakdown.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-6">
+                  No expense records to analyze yet.
+                </p>
+              ) : (
+                <>
+                  {/* Dynamic Segmented Bar */}
+                  <div className="w-full h-3 rounded-full bg-[#181C2B] overflow-hidden flex">
+                    {categoryBreakdown.map((cat, idx) => {
+                      const bgClasses = {
+                        mint: 'bg-pastel-mint',
+                        sky: 'bg-pastel-sky',
+                        yellow: 'bg-pastel-yellow',
+                        pink: 'bg-pastel-pink',
+                        purple: 'bg-pastel-purple',
+                        peach: 'bg-pastel-peach',
+                        slate: 'bg-slate-400'
+                      }[cat.color] || 'bg-slate-400'
 
-              {/* Legend */}
-              <div className="grid grid-cols-2 gap-3 text-xs pt-2">
-                <div className="flex items-center space-x-2">
-                  <div className="h-2.5 w-2.5 rounded-full bg-pastel-pink" />
-                  <span className="text-slate-300">Dining & Cafe</span>
-                  <span className="text-slate-500 font-mono ml-auto">42%</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-2.5 w-2.5 rounded-full bg-pastel-purple" />
-                  <span className="text-slate-300">Shopping</span>
-                  <span className="text-slate-500 font-mono ml-auto">28%</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-2.5 w-2.5 rounded-full bg-pastel-sky" />
-                  <span className="text-slate-300">Software & Tech</span>
-                  <span className="text-slate-500 font-mono ml-auto">18%</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-2.5 w-2.5 rounded-full bg-pastel-yellow" />
-                  <span className="text-slate-300">Trips & Goals</span>
-                  <span className="text-slate-500 font-mono ml-auto">12%</span>
-                </div>
-              </div>
+                      return (
+                        <div
+                          key={idx}
+                          className={`${bgClasses} h-full`}
+                          style={{ width: `${cat.percentage}%` }}
+                          title={`${cat.category}: ${currencySymbol}${formatINR(cat.amount)} (${cat.percentage}%)`}
+                        />
+                      )
+                    })}
+                  </div>
+
+                  {/* Category Legend List */}
+                  <div className="space-y-2.5 pt-2">
+                    {categoryBreakdown.map((item, idx) => {
+                      const dotClasses = {
+                        mint: 'bg-pastel-mint',
+                        sky: 'bg-pastel-sky',
+                        yellow: 'bg-pastel-yellow',
+                        pink: 'bg-pastel-pink',
+                        purple: 'bg-pastel-purple',
+                        peach: 'bg-pastel-peach',
+                        slate: 'bg-slate-400'
+                      }[item.color] || 'bg-slate-400'
+
+                      return (
+                        <div key={idx} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center space-x-2">
+                            <div className={`h-2.5 w-2.5 rounded-full ${dotClasses}`} />
+                            <span className="text-slate-300">{item.icon} {item.category}</span>
+                          </div>
+                          <div className="flex items-center space-x-2 font-mono">
+                            <span className="text-slate-400">{currencySymbol}{formatINR(item.amount)}</span>
+                            <span className="text-slate-500 font-bold">({item.percentage}%)</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Fast Quick-Action Banner */}
-            <div className="glass-panel p-5 rounded-3xl border border-white/5 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2.5 rounded-2xl bg-pastel-mint/10 text-pastel-mint">
-                  <Zap className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-white">Need to adjust your monthly target?</p>
-                  <p className="text-[11px] text-slate-400">Manage profile and currency settings</p>
-                </div>
+            {/* Financial Health Summary Card */}
+            <div className="bg-gradient-to-br from-[#171C2E] to-[#121524] p-6 rounded-3xl border border-white/10 relative overflow-hidden">
+              <div className="flex items-center space-x-2 mb-3 text-pastel-sky text-xs font-semibold">
+                <BarChart3 className="h-4 w-4" />
+                <span>Monthly Cashflow Overview</span>
               </div>
-              <button
-                onClick={() => onNavigate('profile')}
-                className="text-xs font-bold px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 text-pastel-mint border border-pastel-mint/30 transition"
-              >
-                Profile →
-              </button>
+              <h3 className="text-base font-bold text-white font-display mb-1.5">
+                {netSavings >= 0 ? `Net Monthly Surplus: +${currencySymbol}${formatINR(netSavings)}` : `Net Deficit: -${currencySymbol}${formatINR(Math.abs(netSavings))}`}
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                You are saving <strong>{savingsRate}%</strong> of your income this cycle. 
+                {budgetRemaining > 0 
+                  ? ` You have ${currencySymbol}${formatINR(budgetRemaining)} remaining before hitting your monthly budget ceiling.` 
+                  : ` You have exceeded your monthly budget ceiling by ${currencySymbol}${formatINR(Math.abs(budgetRemaining))}.`}
+              </p>
+              <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono text-slate-400">
+                <span>Budget Status: <strong className="text-white">{budgetSpentPct}%</strong></span>
+                <span>Active Goals: <strong className="text-pastel-mint">{savingsGoals.length}</strong></span>
+              </div>
             </div>
           </div>
         </div>
@@ -815,9 +986,9 @@ export default function HomePage({ onNavigate, user }) {
           <div className="max-w-md w-full glass-panel rounded-3xl border border-white/15 p-6 shadow-2xl relative overflow-hidden bg-[#0D101A]">
             <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
               <div className="flex items-center space-x-2">
-                <span className="text-lg">✨</span>
+                <span className="text-base font-bold text-pastel-mint">₹</span>
                 <h3 className="text-base font-bold text-white font-display">
-                  Record New Transaction
+                  Record Transaction
                 </h3>
               </div>
               <button
@@ -833,35 +1004,45 @@ export default function HomePage({ onNavigate, user }) {
               <div className="grid grid-cols-2 gap-2 bg-[#141826] p-1 rounded-xl border border-white/5">
                 <button
                   type="button"
-                  onClick={() => setTxType('expense')}
-                  className={`py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 ${
+                  onClick={() => {
+                    setTxType('expense')
+                    setTxCategory('Food & Dining')
+                    setTxEmoji('🍽️')
+                  }}
+                  className={`py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
                     txType === 'expense'
                       ? 'bg-pastel-pink/20 text-pastel-pink border border-pastel-pink/40 shadow-glow-pink'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  <span>💸 Expense</span>
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                  <span>Expense</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTxType('income')}
-                  className={`py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 ${
+                  onClick={() => {
+                    setTxType('income')
+                    setTxCategory('Salary & Income')
+                    setTxEmoji('💼')
+                  }}
+                  className={`py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
                     txType === 'income'
                       ? 'bg-pastel-mint/20 text-pastel-mint border border-pastel-mint/40 shadow-glow-mint'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  <span>🌿 Income</span>
+                  <ArrowDownLeft className="h-3.5 w-3.5" />
+                  <span>Income</span>
                 </button>
               </div>
 
               {/* Amount Input */}
               <div>
                 <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1">
-                  Amount ($ USD)
+                  Amount (₹ INR)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-2.5 text-base font-bold text-slate-400">$</span>
+                  <span className="absolute left-3.5 top-2.5 text-base font-bold text-slate-400">{currencySymbol}</span>
                   <input
                     type="number"
                     step="0.01"
@@ -875,71 +1056,71 @@ export default function HomePage({ onNavigate, user }) {
                 </div>
               </div>
 
-              {/* Description */}
+              {/* Description / Merchant */}
               <div>
                 <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1">
                   Description / Merchant
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Blue Bottle Coffee, Spotify, Paycheck"
+                  placeholder="e.g. Grocery Market, Rent, Salary Deposit"
                   value={txTitle}
                   onChange={(e) => setTxTitle(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pastel-mint"
+                  className="w-full px-3.5 py-2.5 bg-[#141826] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pastel-mint"
                   required
                 />
               </div>
 
-              {/* Category Selector */}
+              {/* Category Dropdown */}
               <div>
-                <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1.5">
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1">
                   Category
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {CATEGORY_OPTIONS.map((cat) => (
-                    <button
-                      key={cat.label}
-                      type="button"
-                      onClick={() => {
-                        setTxCategory(cat.label)
-                        setTxEmoji(cat.emoji)
-                      }}
-                      className={`p-2 rounded-xl border text-left text-xs transition flex items-center space-x-1.5 ${
-                        txCategory === cat.label
-                          ? 'bg-white/15 border-white text-white font-bold'
-                          : 'bg-[#141826] border-white/5 text-slate-400 hover:border-white/20'
-                      }`}
-                    >
-                      <span>{cat.emoji}</span>
-                      <span className="truncate">{cat.label.split(' ')[0]}</span>
-                    </button>
+                <select
+                  value={txCategory}
+                  onChange={(e) => {
+                    const catObj = TRANSACTION_CATEGORIES.find((c) => c.label === e.target.value)
+                    setTxCategory(e.target.value)
+                    if (catObj) setTxEmoji(catObj.icon)
+                  }}
+                  className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-pastel-mint"
+                >
+                  {TRANSACTION_CATEGORIES.filter((c) => (txType === 'income' ? c.isIncome : !c.isIncome)).map((cat) => (
+                    <option key={cat.label} value={cat.label}>
+                      {cat.icon} {cat.label}
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
 
-              {/* Mood Tag Selector */}
-              <div>
-                <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1.5">
-                  Vibe / Mood Tag (Optional)
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {MOOD_OPTIONS.map((m) => (
-                    <button
-                      key={m.label}
-                      type="button"
-                      onClick={() => {
-                        setTxMood(m.label)
-                        setTxMoodColor(m.color)
-                      }}
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-mono transition border ${
-                        txMood === m.label
-                          ? 'bg-white/20 text-white border-white font-bold'
-                          : 'bg-white/5 text-slate-400 border-white/10 hover:border-white/20'
-                      }`}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
+              {/* Payment Method & Date Row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1">
+                    Payment Method
+                  </label>
+                  <select
+                    value={txPaymentMethod}
+                    onChange={(e) => setTxPaymentMethod(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-pastel-mint"
+                  >
+                    {PAYMENT_METHODS.map((method) => (
+                      <option key={method} value={method}>{method}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={txDate}
+                    onChange={(e) => setTxDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-pastel-mint"
+                    required
+                  />
                 </div>
               </div>
 
@@ -956,15 +1137,15 @@ export default function HomePage({ onNavigate, user }) {
         </div>
       )}
 
-      {/* MODAL: DEPOSIT TO VAULT */}
-      {isDepositModalOpen && selectedVault && (
+      {/* MODAL: DEPOSIT TO SAVINGS GOAL */}
+      {isDepositModalOpen && selectedGoal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="max-w-sm w-full glass-panel rounded-3xl border border-pastel-yellow/30 p-6 shadow-glow-yellow relative overflow-hidden bg-[#0D101A]">
+          <div className="max-w-sm w-full glass-panel rounded-3xl border border-pastel-mint/30 p-6 shadow-glow-mint relative overflow-hidden bg-[#0D101A]">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
               <div className="flex items-center space-x-2">
-                <span className="text-xl">{selectedVault.emoji}</span>
+                <span className="text-xl">{selectedGoal.emoji}</span>
                 <h3 className="text-sm font-bold text-white">
-                  Stash in {selectedVault.name}
+                  Deposit to {selectedGoal.name}
                 </h3>
               </div>
               <button
@@ -975,28 +1156,28 @@ export default function HomePage({ onNavigate, user }) {
               </button>
             </div>
 
-            <form onSubmit={handleDepositToVault} className="space-y-4">
+            <form onSubmit={handleDepositToGoal} className="space-y-4">
               <div className="text-xs text-slate-400">
-                Current: <strong className="text-white">${selectedVault.current}</strong> / Target: ${selectedVault.target}
+                Current Balance: <strong className="text-white">{currencySymbol}{formatINRLarge(selectedGoal.current)}</strong> / Target: {currencySymbol}{formatINRLarge(selectedGoal.target)}
               </div>
 
               <div>
                 <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1">
-                  Deposit Amount ($)
+                  Deposit Amount ({currencySymbol})
                 </label>
                 <input
                   type="number"
-                  step="10"
+                  step="500"
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#141826] border border-white/10 rounded-xl text-base font-bold font-mono text-white focus:outline-none focus:border-pastel-yellow"
+                  className="w-full px-3.5 py-2.5 bg-[#141826] border border-white/10 rounded-xl text-base font-bold font-mono text-white focus:outline-none focus:border-pastel-mint"
                   required
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-pastel-yellow text-slate-950 font-bold text-xs hover:bg-yellow-300 transition"
+                className="w-full py-2.5 rounded-xl bg-pastel-mint text-slate-950 font-bold text-xs hover:bg-emerald-300 transition"
               >
                 Confirm Deposit
               </button>
@@ -1005,63 +1186,89 @@ export default function HomePage({ onNavigate, user }) {
         </div>
       )}
 
-      {/* MODAL: CREATE NEW VAULT */}
-      {isNewVaultModalOpen && (
+      {/* MODAL: CREATE NEW SAVINGS GOAL */}
+      {isNewGoalModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="max-w-sm w-full glass-panel rounded-3xl border border-white/15 p-6 shadow-2xl relative overflow-hidden bg-[#0D101A]">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
               <div className="flex items-center space-x-2">
-                <span>🎯</span>
-                <h3 className="text-sm font-bold text-white">Create New Pastel Vault</h3>
+                <Target className="h-5 w-5 text-pastel-mint" />
+                <h3 className="text-sm font-bold text-white">New Savings Goal</h3>
               </div>
               <button
-                onClick={() => setIsNewVaultModalOpen(false)}
+                onClick={() => setIsNewGoalModalOpen(false)}
                 className="text-slate-400 hover:text-white p-1"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateVault} className="space-y-3.5">
+            <form onSubmit={handleCreateGoal} className="space-y-3.5">
               <div>
                 <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1">
                   Goal Name
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Summer Eurotrip, New iPad, Concert"
-                  value={newVaultName}
-                  onChange={(e) => setNewVaultName(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-pastel-yellow"
+                  placeholder="e.g. Wedding, Emergency Fund, New Car"
+                  value={newGoalName}
+                  onChange={(e) => setNewGoalName(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-pastel-mint"
                   required
                 />
               </div>
 
               <div>
                 <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1">
-                  Target Amount ($)
+                  Target Amount ({currencySymbol})
                 </label>
                 <input
                   type="number"
-                  placeholder="2000"
-                  value={newVaultTarget}
-                  onChange={(e) => setNewVaultTarget(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-pastel-yellow"
+                  placeholder="100000"
+                  value={newGoalTarget}
+                  onChange={(e) => setNewGoalTarget(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-pastel-mint"
                   required
                 />
               </div>
 
               <div>
                 <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1">
-                  Pick Emoji & Color
+                  Initial Deposit (Optional)
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={newGoalInitial}
+                  onChange={(e) => setNewGoalInitial(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-pastel-mint"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1">
+                  Target Date / Deadline
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Dec 2026, Diwali 2027"
+                  value={newGoalDeadline}
+                  onChange={(e) => setNewGoalDeadline(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-pastel-mint"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1">
+                  Goal Icon
                 </label>
                 <div className="flex items-center space-x-2">
-                  {['🌴', '✈️', '💻', '🎨', '🎸', '🏠'].map((em) => (
+                  {['🛡️', '🏠', '🚗', '✈️', '💻', '📈', '🎓', '🎯'].map((em) => (
                     <button
                       key={em}
                       type="button"
-                      onClick={() => setNewVaultEmoji(em)}
-                      className={`text-lg p-1.5 rounded-lg ${newVaultEmoji === em ? 'bg-white/20' : 'hover:bg-white/5'}`}
+                      onClick={() => setNewGoalEmoji(em)}
+                      className={`text-lg p-1.5 rounded-lg ${newGoalEmoji === em ? 'bg-white/20' : 'hover:bg-white/5'}`}
                     >
                       {em}
                     </button>
@@ -1069,12 +1276,14 @@ export default function HomePage({ onNavigate, user }) {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                className="w-full py-2.5 mt-2 rounded-xl bg-pastel-yellow text-slate-950 font-bold text-xs hover:bg-yellow-300 transition"
-              >
-                Create Goal Vault
-              </button>
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-xl bg-pastel-mint text-slate-950 font-bold text-xs hover:bg-emerald-300 transition"
+                >
+                  Create Goal
+                </button>
+              </div>
             </form>
           </div>
         </div>
