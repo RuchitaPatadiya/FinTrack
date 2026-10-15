@@ -25,6 +25,7 @@ from backend.app.accounts.models import User
 from backend.app.accounts.schemas import (
     UserCreate,
     UserLogin,
+    UserUpdate,
     GoogleAuthRequest,
     ForgotPasswordRequest,
     ResetPasswordRequest,
@@ -190,4 +191,17 @@ def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def get_current_user_profile(current_user: User = Depends(get_current_user)):
     """Retrieve profile data for the authenticated user."""
+    return current_user
+
+@router.patch("/me", response_model=UserResponse)
+def update_current_user_profile(
+    data: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update the authenticated user's profile (e.g. full name)."""
+    if data.full_name is not None:
+        current_user.full_name = data.full_name.strip()
+    db.commit()
+    db.refresh(current_user)
     return current_user
