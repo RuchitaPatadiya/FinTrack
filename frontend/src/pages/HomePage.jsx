@@ -23,8 +23,10 @@ import {
   LogOut,
   Target,
   Layers,
-  Percent
+  Percent,
+  Loader2
 } from 'lucide-react'
+import { transactionsAPI } from '../services/api'
 
 // Indian Rupee formatting helper
 export const formatINR = (val) => {
@@ -187,8 +189,18 @@ const INITIAL_SAVINGS_GOALS = [
 ]
 
 export default function HomePage({ onNavigate, user, onLogout }) {
+  const isRealUser = Boolean(
+    user &&
+    user.auth_provider !== 'demo' &&
+    user.auth_provider !== 'guest' &&
+    localStorage.getItem('fintrack_token')
+  )
+
   // Load stored transactions or default
   const [transactions, setTransactions] = useState(() => {
+    if (user && user.auth_provider !== 'demo' && user.auth_provider !== 'guest' && localStorage.getItem('fintrack_token')) {
+      return []
+    }
     try {
       const saved = localStorage.getItem('fintrack_tx_list')
       if (saved) {
@@ -205,6 +217,29 @@ export default function HomePage({ onNavigate, user, onLogout }) {
       return INITIAL_TRANSACTIONS
     }
   })
+
+  const [loadingTransactions, setLoadingTransactions] = useState(false)
+  const [isSubmittingTx, setIsSubmittingTx] = useState(false)
+
+  // Fetch transactions from backend database for authenticated users
+  useEffect(() => {
+    if (isRealUser) {
+      setLoadingTransactions(true)
+      transactionsAPI
+        .list()
+        .then((res) => {
+          if (Array.isArray(res.data)) {
+            setTransactions(res.data)
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load transactions from backend database:', err)
+        })
+        .finally(() => {
+          setLoadingTransactions(false)
+        })
+    }
+  }, [isRealUser, user?.id])
 
   // Load stored savings goals or default
   const [savingsGoals, setSavingsGoals] = useState(() => {
@@ -242,12 +277,14 @@ export default function HomePage({ onNavigate, user, onLogout }) {
   // Default currency is Indian Rupee ₹
   const currencySymbol = '₹'
 
-  // Persist state
+  // Persist state to localStorage only for guest / demo mode
   useEffect(() => {
-    try {
-      localStorage.setItem('fintrack_tx_list', JSON.stringify(transactions))
-    } catch {}
-  }, [transactions])
+    if (!isRealUser) {
+      try {
+        localStorage.setItem('fintrack_tx_list', JSON.stringify(transactions))
+      } catch {}
+    }
+  }, [transactions, isRealUser])
 
   useEffect(() => {
     try {
@@ -298,7 +335,7 @@ export default function HomePage({ onNavigate, user, onLogout }) {
       if (tx.type === 'income') inc += amt
       else exp += amt
     })
-    const baseBalance = 250000.00
+    const baseBalance = isRealUser ? 0 : 250000.00
     const calculatedBalance = baseBalance + (inc - exp)
     const savings = inc - exp
     const rate = inc > 0 ? Math.max(0, Math.round((savings / inc) * 100)) : 0
@@ -310,7 +347,7 @@ export default function HomePage({ onNavigate, user, onLogout }) {
       netSavings: savings,
       savingsRate: rate
     }
-  }, [transactions])
+  }, [transactions, isRealUser])
 
   // Dynamic Category Breakdown from actual expenses
   const categoryBreakdown = useMemo(() => {
@@ -349,17 +386,18 @@ export default function HomePage({ onNavigate, user, onLogout }) {
       const matchesType = activeFilter === 'all' || tx.type === activeFilter
       const matchesCategory =
         selectedCategoryFilter === 'all' || tx.category === selectedCategoryFilter
+      const methodStr = tx.payment_method || tx.paymentMethod || ''
       const matchesSearch =
         tx.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         tx.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (tx.paymentMethod && tx.paymentMethod.toLowerCase().includes(searchQuery.toLowerCase()))
+        methodStr.toLowerCase().includes(searchQuery.toLowerCase())
 
       return matchesType && matchesCategory && matchesSearch
     })
   }, [transactions, activeFilter, selectedCategoryFilter, searchQuery])
 
   // Handle Add Transaction Submit
-  const handleAddTransaction = (e) => {
+  const handleAddTransaction = async (e) => {
     e.preventDefault()
     const numAmount = parseFloat(txAmount)
     if (isNaN(numAmount) || numAmount <= 0) {
@@ -367,15 +405,43 @@ export default function HomePage({ onNavigate, user, onLogout }) {
       return
     }
 
-    const newTx = {
-      id: `tx-${Date.now()}`,
+    const payload = {
       title: txTitle.trim() || (txType === 'income' ? 'Income Deposit' : 'Expense Payment'),
       category: txCategory,
       emoji: txEmoji,
       amount: numAmount,
       type: txType,
       date: txDate || new Date().toISOString().split('T')[0],
+      payment_method: txPaymentMethod,
       paymentMethod: txPaymentMethod
+    }
+
+    if (isRealUser) {
+      setIsSubmittingTx(true)
+      try {
+        const res = await transactionsAPI.create(payload)
+        const createdTx = {
+          ...res.data,
+          paymentMethod: res.data.payment_method || txPaymentMethod
+        }
+        setTransactions((prev) => [createdTx, ...prev])
+        setIsAddModalOpen(false)
+        setTxTitle('')
+        setTxAmount('')
+        showToast(`Logged ${createdTx.type === 'income' ? '+' : '-'}${currencySymbol}${formatINR(numAmount)} (${createdTx.title})`)
+      } catch (err) {
+        console.error('Failed to create transaction on server:', err)
+        alert('Failed to save transaction: ' + (err.response?.data?.detail || err.message))
+      } finally {
+        setIsSubmittingTx(false)
+      }
+      return
+    }
+
+    // Guest / Demo fallback
+    const newTx = {
+      id: `tx-${Date.now()}`,
+      ...payload
     }
 
     setTransactions([newTx, ...transactions])
@@ -401,17 +467,36 @@ export default function HomePage({ onNavigate, user, onLogout }) {
     )
 
     // Also record as a savings transfer expense
-    const savingsTx = {
-      id: `tx-${Date.now()}`,
+    const savingsTxData = {
       title: `Transfer to ${selectedGoal.name}`,
       category: 'Investments & Dividends',
       emoji: selectedGoal.emoji || '🎯',
       amount: dep,
       type: 'expense',
       date: new Date().toISOString().split('T')[0],
+      payment_method: 'Bank Transfer',
       paymentMethod: 'Bank Transfer'
     }
-    setTransactions([savingsTx, ...transactions])
+
+    if (isRealUser) {
+      transactionsAPI.create(savingsTxData)
+        .then((res) => {
+          const createdTx = {
+            ...res.data,
+            paymentMethod: res.data.payment_method || 'Bank Transfer'
+          }
+          setTransactions((prev) => [createdTx, ...prev])
+        })
+        .catch((err) => {
+          console.error('Failed to record transfer in database:', err)
+        })
+    } else {
+      const savingsTx = {
+        id: `tx-${Date.now()}`,
+        ...savingsTxData
+      }
+      setTransactions([savingsTx, ...transactions])
+    }
 
     setIsDepositModalOpen(false)
     setDepositAmount('5000')
@@ -449,11 +534,24 @@ export default function HomePage({ onNavigate, user, onLogout }) {
   }
 
   // Delete transaction
-  const handleDeleteTx = (id) => {
-    if (window.confirm('Delete this transaction record?')) {
-      setTransactions(transactions.filter((t) => t.id !== id))
-      showToast('Transaction removed')
+  const handleDeleteTx = async (id) => {
+    if (!window.confirm('Delete this transaction record?')) return
+
+    if (isRealUser && typeof id === 'number') {
+      try {
+        await transactionsAPI.delete(id)
+        setTransactions((prev) => prev.filter((t) => t.id !== id))
+        showToast('Transaction removed')
+        return
+      } catch (err) {
+        console.error('Failed to delete transaction:', err)
+        alert('Failed to delete transaction: ' + (err.response?.data?.detail || err.message))
+        return
+      }
     }
+
+    setTransactions((prev) => prev.filter((t) => t.id !== id))
+    showToast('Transaction removed')
   }
 
   // Budget calculations
@@ -828,13 +926,19 @@ export default function HomePage({ onNavigate, user, onLogout }) {
 
             {/* Transactions List */}
             <div className="space-y-2.5">
-              {filteredTransactions.length === 0 ? (
+              {loadingTransactions ? (
+                <div className="glass-panel p-8 rounded-3xl border border-white/5 flex flex-col items-center justify-center space-y-2 text-slate-400 text-xs">
+                  <Loader2 className="h-5 w-5 text-pastel-mint animate-spin" />
+                  <span>Loading transactions from PostgreSQL database...</span>
+                </div>
+              ) : filteredTransactions.length === 0 ? (
                 <div className="glass-panel p-8 rounded-3xl border border-white/5 text-center text-slate-400 text-xs">
                   No matching transactions recorded. Click <strong>+ Add Transaction</strong> to log one!
                 </div>
               ) : (
                 filteredTransactions.map((tx) => {
                   const isIncome = tx.type === 'income'
+                  const method = tx.payment_method || tx.paymentMethod
 
                   return (
                     <div
@@ -853,10 +957,10 @@ export default function HomePage({ onNavigate, user, onLogout }) {
                             <span>{tx.category}</span>
                             <span>•</span>
                             <span>{tx.date}</span>
-                            {tx.paymentMethod && (
+                            {method && (
                               <>
                                 <span>•</span>
-                                <span className="font-mono text-slate-400">{tx.paymentMethod}</span>
+                                <span className="font-mono text-slate-400">{method}</span>
                               </>
                             )}
                           </div>
@@ -1127,9 +1231,11 @@ export default function HomePage({ onNavigate, user, onLogout }) {
               <div className="pt-3">
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-pastel-mint to-pastel-sky text-slate-950 font-bold text-xs shadow-glow-mint hover:opacity-95 transition"
+                  disabled={isSubmittingTx}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-pastel-mint to-pastel-sky text-slate-950 font-bold text-xs shadow-glow-mint hover:opacity-95 transition flex items-center justify-center space-x-2 disabled:opacity-60"
                 >
-                  Save Transaction
+                  {isSubmittingTx && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-950" />}
+                  <span>{isSubmittingTx ? 'Saving to Database...' : 'Save Transaction'}</span>
                 </button>
               </div>
             </form>

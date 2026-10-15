@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   CreditCard
 } from 'lucide-react'
+import { authAPI } from '../services/api'
 
 const CURRENCIES = [
   { code: 'INR', symbol: '₹', label: 'Indian Rupee (₹)' },
@@ -35,22 +36,39 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
   const [profileData, setProfileData] = useState(() => {
     try {
       const saved = localStorage.getItem('fintrack_profile_prefs')
+      const base = {
+        fullName: user?.full_name || 'Account Holder',
+        email: user?.email || 'user@fintrack.app',
+        currency: 'INR',
+        monthlyBudgetLimit: 50000,
+        targetSavingsRate: 35,
+        budgetThresholdAlert: 80,
+        weeklySummaryEmail: true,
+        transactionAlerts: true
+      }
       if (saved) {
         const parsed = JSON.parse(saved)
         if (parsed.currency === 'USD') parsed.currency = 'INR'
         if (parsed.monthlyBudgetLimit < 10000) parsed.monthlyBudgetLimit = 50000
-        return parsed
+        // Always use the live user's name and email from the authenticated session
+        return {
+          ...parsed,
+          fullName: user?.full_name || parsed.fullName || base.fullName,
+          email: user?.email || parsed.email || base.email
+        }
       }
-    } catch {}
-    return {
-      fullName: user?.full_name || 'Account Holder',
-      email: user?.email || 'user@fintrack.app',
-      currency: 'INR',
-      monthlyBudgetLimit: 50000,
-      targetSavingsRate: 35,
-      budgetThresholdAlert: 80,
-      weeklySummaryEmail: true,
-      transactionAlerts: true
+      return base
+    } catch {
+      return {
+        fullName: user?.full_name || 'Account Holder',
+        email: user?.email || 'user@fintrack.app',
+        currency: 'INR',
+        monthlyBudgetLimit: 50000,
+        targetSavingsRate: 35,
+        budgetThresholdAlert: 80,
+        weeklySummaryEmail: true,
+        transactionAlerts: true
+      }
     }
   })
 
@@ -58,15 +76,36 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
   const [toastMessage, setToastMessage] = useState('')
   const [isSaved, setIsSaved] = useState(false)
 
-  // Save to localStorage
-  const handleSavePreferences = () => {
+  const isRealUser = Boolean(
+    user &&
+    user.auth_provider !== 'demo' &&
+    user.auth_provider !== 'guest' &&
+    localStorage.getItem('fintrack_token')
+  )
+
+  // Save to localStorage and optionally sync name to backend DB
+  const handleSavePreferences = async () => {
     try {
       localStorage.setItem('fintrack_profile_prefs', JSON.stringify(profileData))
+      if (isRealUser && profileData.fullName) {
+        try {
+          await authAPI.updateProfile({ full_name: profileData.fullName.trim() })
+          // Update stored user object so header avatar/name reflects new name
+          const stored = localStorage.getItem('fintrack_user')
+          if (stored) {
+            const u = JSON.parse(stored)
+            u.full_name = profileData.fullName.trim()
+            localStorage.setItem('fintrack_user', JSON.stringify(u))
+          }
+        } catch (apiErr) {
+          console.warn('Profile name sync to DB failed (non-critical):', apiErr)
+        }
+      }
       setIsSaved(true)
       showToast('Settings & preferences saved successfully!')
       setTimeout(() => setIsSaved(false), 2500)
     } catch {
-      showToast('Failed to save preferences locally.')
+      showToast('Failed to save preferences.')
     }
   }
 
@@ -104,7 +143,7 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
     try {
       const txs = JSON.parse(localStorage.getItem('fintrack_tx_list') || '[]')
       if (txs.length === 0) {
-        showToast('No transactions to export.')
+        showToast('No transactions to export. Add some transactions first!')
         return
       }
 
@@ -116,7 +155,7 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
         `"${(t.category || '').replace(/"/g, '""')}"`,
         t.type,
         t.amount,
-        `"${(t.paymentMethod || '').replace(/"/g, '""')}"`
+        `"${(t.payment_method || t.paymentMethod || '').replace(/"/g, '""')}"`
       ])
 
       const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')

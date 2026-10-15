@@ -45,6 +45,15 @@ export const authAPI = {
   resetPassword: (token, newPassword) =>
     api.post('/auth/reset-password', { token, new_password: newPassword }),
   getProfile: () => api.get('/auth/me'),
+  updateProfile: (data) => api.patch('/auth/me', data),
+}
+
+export const transactionsAPI = {
+  list: (params) => api.get('/transactions', { params }),
+  create: (data) => api.post('/transactions', data),
+  update: (id, data) => api.put(`/transactions/${id}`, data),
+  delete: (id) => api.delete(`/transactions/${id}`),
+  getSummary: () => api.get('/transactions/summary'),
 }
 
 export default api
