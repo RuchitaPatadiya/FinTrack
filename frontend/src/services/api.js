@@ -56,4 +56,11 @@ export const transactionsAPI = {
   getSummary: () => api.get('/transactions/summary'),
 }
 
+export const goalsAPI = {
+  list: () => api.get('/goals'),
+  create: (data) => api.post('/goals', data),
+  update: (id, data) => api.put(`/goals/${id}`, data),
+  delete: (id) => api.delete(`/goals/${id}`),
+}
+
 export default api
