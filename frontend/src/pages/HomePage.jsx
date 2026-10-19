@@ -26,7 +26,7 @@ import {
   Percent,
   Loader2
 } from 'lucide-react'
-import { transactionsAPI } from '../services/api'
+import { transactionsAPI, goalsAPI } from '../services/api'
 
 // Indian Rupee formatting helper
 export const formatINR = (val) => {
@@ -243,6 +243,9 @@ export default function HomePage({ onNavigate, user, onLogout }) {
 
   // Load stored savings goals or default
   const [savingsGoals, setSavingsGoals] = useState(() => {
+    if (user && user.auth_provider !== 'demo' && user.auth_provider !== 'guest' && localStorage.getItem('fintrack_token')) {
+      return []
+    }
     try {
       const saved = localStorage.getItem('fintrack_vaults')
       if (saved) {
@@ -258,6 +261,30 @@ export default function HomePage({ onNavigate, user, onLogout }) {
       return INITIAL_SAVINGS_GOALS
     }
   })
+
+  const [loadingGoals, setLoadingGoals] = useState(false)
+  const [isSubmittingGoal, setIsSubmittingGoal] = useState(false)
+  const [isDepositingGoal, setIsDepositingGoal] = useState(false)
+
+  // Fetch savings goals from backend database for authenticated users
+  useEffect(() => {
+    if (isRealUser) {
+      setLoadingGoals(true)
+      goalsAPI
+        .list()
+        .then((res) => {
+          if (Array.isArray(res.data)) {
+            setSavingsGoals(res.data)
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load savings goals from backend database:', err)
+        })
+        .finally(() => {
+          setLoadingGoals(false)
+        })
+    }
+  }, [isRealUser, user?.id])
 
   // Budget settings from profile or default INR 50,000
   const [budgetLimit, setBudgetLimit] = useState(() => {
@@ -287,10 +314,12 @@ export default function HomePage({ onNavigate, user, onLogout }) {
   }, [transactions, isRealUser])
 
   useEffect(() => {
-    try {
-      localStorage.setItem('fintrack_vaults', JSON.stringify(savingsGoals))
-    } catch {}
-  }, [savingsGoals])
+    if (!isRealUser) {
+      try {
+        localStorage.setItem('fintrack_vaults', JSON.stringify(savingsGoals))
+      } catch {}
+    }
+  }, [savingsGoals, isRealUser])
 
   // UI state
   const [activeFilter, setActiveFilter] = useState('all') // 'all', 'expense', 'income'
@@ -452,11 +481,54 @@ export default function HomePage({ onNavigate, user, onLogout }) {
   }
 
   // Handle Goal Deposit
-  const handleDepositToGoal = (e) => {
+  const handleDepositToGoal = async (e) => {
     e.preventDefault()
     const dep = parseFloat(depositAmount)
     if (!selectedGoal || isNaN(dep) || dep <= 0) return
 
+    if (isRealUser) {
+      setIsDepositingGoal(true)
+      try {
+        const res = await goalsAPI.update(selectedGoal.id, { deposit: dep })
+        setSavingsGoals((prev) =>
+          prev.map((g) => (g.id === selectedGoal.id ? res.data : g))
+        )
+
+        // Also record as a savings transfer expense in database
+        const savingsTxData = {
+          title: `Transfer to ${selectedGoal.name}`,
+          category: 'Investments & Dividends',
+          emoji: selectedGoal.emoji || '🎯',
+          amount: dep,
+          type: 'expense',
+          date: new Date().toISOString().split('T')[0],
+          payment_method: 'Bank Transfer'
+        }
+
+        try {
+          const txRes = await transactionsAPI.create(savingsTxData)
+          const createdTx = {
+            ...txRes.data,
+            paymentMethod: txRes.data.payment_method || 'Bank Transfer'
+          }
+          setTransactions((prev) => [createdTx, ...prev])
+        } catch (txErr) {
+          console.error('Failed to record transfer in database:', txErr)
+        }
+
+        setIsDepositModalOpen(false)
+        setDepositAmount('5000')
+        showToast(`Deposited ${currencySymbol}${formatINR(dep)} to ${selectedGoal.name}`)
+      } catch (err) {
+        console.error('Failed to deposit to savings goal:', err)
+        alert('Failed to deposit: ' + (err.response?.data?.detail || err.message))
+      } finally {
+        setIsDepositingGoal(false)
+      }
+      return
+    }
+
+    // Guest / Demo fallback
     setSavingsGoals(
       savingsGoals.map((g) => {
         if (g.id === selectedGoal.id) {
@@ -466,45 +538,24 @@ export default function HomePage({ onNavigate, user, onLogout }) {
       })
     )
 
-    // Also record as a savings transfer expense
     const savingsTxData = {
+      id: `tx-${Date.now()}`,
       title: `Transfer to ${selectedGoal.name}`,
       category: 'Investments & Dividends',
       emoji: selectedGoal.emoji || '🎯',
       amount: dep,
       type: 'expense',
       date: new Date().toISOString().split('T')[0],
-      payment_method: 'Bank Transfer',
       paymentMethod: 'Bank Transfer'
     }
-
-    if (isRealUser) {
-      transactionsAPI.create(savingsTxData)
-        .then((res) => {
-          const createdTx = {
-            ...res.data,
-            paymentMethod: res.data.payment_method || 'Bank Transfer'
-          }
-          setTransactions((prev) => [createdTx, ...prev])
-        })
-        .catch((err) => {
-          console.error('Failed to record transfer in database:', err)
-        })
-    } else {
-      const savingsTx = {
-        id: `tx-${Date.now()}`,
-        ...savingsTxData
-      }
-      setTransactions([savingsTx, ...transactions])
-    }
-
+    setTransactions([savingsTxData, ...transactions])
     setIsDepositModalOpen(false)
     setDepositAmount('5000')
     showToast(`Deposited ${currencySymbol}${formatINR(dep)} to ${selectedGoal.name}`)
   }
 
   // Handle Create New Goal
-  const handleCreateGoal = (e) => {
+  const handleCreateGoal = async (e) => {
     e.preventDefault()
     const target = parseFloat(newGoalTarget)
     const initial = parseFloat(newGoalInitial) || 0
@@ -514,14 +565,39 @@ export default function HomePage({ onNavigate, user, onLogout }) {
       return
     }
 
-    const created = {
-      id: `goal-${Date.now()}`,
+    const goalPayload = {
       name: newGoalName.trim(),
-      emoji: newGoalEmoji,
+      emoji: newGoalEmoji || '🎯',
       target: target,
       current: initial,
-      color: newGoalColor,
+      color: newGoalColor || 'mint',
       deadline: newGoalDeadline.trim() || 'Flexible'
+    }
+
+    if (isRealUser) {
+      setIsSubmittingGoal(true)
+      try {
+        const res = await goalsAPI.create(goalPayload)
+        setSavingsGoals((prev) => [...prev, res.data])
+        setIsNewGoalModalOpen(false)
+        setNewGoalName('')
+        setNewGoalTarget('')
+        setNewGoalInitial('')
+        setNewGoalDeadline('')
+        showToast(`Created savings goal: "${res.data.name}"`)
+      } catch (err) {
+        console.error('Failed to create savings goal:', err)
+        alert('Failed to create goal: ' + (err.response?.data?.detail || err.message))
+      } finally {
+        setIsSubmittingGoal(false)
+      }
+      return
+    }
+
+    // Guest / Demo fallback
+    const created = {
+      id: `goal-${Date.now()}`,
+      ...goalPayload
     }
 
     setSavingsGoals([...savingsGoals, created])
@@ -531,6 +607,27 @@ export default function HomePage({ onNavigate, user, onLogout }) {
     setNewGoalInitial('')
     setNewGoalDeadline('')
     showToast(`Created savings goal: "${created.name}"`)
+  }
+
+  // Handle Delete Savings Goal
+  const handleDeleteGoal = async (id, name) => {
+    if (!window.confirm(`Delete savings goal "${name || 'this goal'}"?`)) return
+
+    if (isRealUser && typeof id === 'number') {
+      try {
+        await goalsAPI.delete(id)
+        setSavingsGoals((prev) => prev.filter((g) => g.id !== id))
+        showToast('Savings goal deleted')
+        return
+      } catch (err) {
+        console.error('Failed to delete savings goal:', err)
+        alert('Failed to delete goal: ' + (err.response?.data?.detail || err.message))
+        return
+      }
+    }
+
+    setSavingsGoals((prev) => prev.filter((g) => g.id !== id))
+    showToast('Savings goal deleted')
   }
 
   // Delete transaction
@@ -803,63 +900,83 @@ export default function HomePage({ onNavigate, user, onLogout }) {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {savingsGoals.map((goal) => {
-              const pct = Math.min(100, Math.round((goal.current / goal.target) * 100))
-              const colorClasses = {
-                mint: { border: 'hover:border-pastel-mint/40', fill: 'bg-pastel-mint', text: 'text-pastel-mint' },
-                sky: { border: 'hover:border-pastel-sky/40', fill: 'bg-pastel-sky', text: 'text-pastel-sky' },
-                yellow: { border: 'hover:border-pastel-yellow/40', fill: 'bg-pastel-yellow', text: 'text-pastel-yellow' },
-                purple: { border: 'hover:border-pastel-purple/40', fill: 'bg-pastel-purple', text: 'text-pastel-purple' }
-              }[goal.color] || { border: 'hover:border-pastel-mint/40', fill: 'bg-pastel-mint', text: 'text-pastel-mint' }
+            {loadingGoals ? (
+              <div className="col-span-full glass-panel p-8 rounded-3xl border border-white/5 flex flex-col items-center justify-center space-y-2 text-slate-400 text-xs">
+                <Loader2 className="h-5 w-5 text-pastel-mint animate-spin" />
+                <span>Loading savings goals from PostgreSQL database...</span>
+              </div>
+            ) : savingsGoals.length === 0 ? (
+              <div className="col-span-full glass-panel p-8 rounded-3xl border border-white/5 text-center text-slate-400 text-xs">
+                No active savings goals recorded. Click <strong>+ New Goal</strong> to launch your first vault!
+              </div>
+            ) : (
+              savingsGoals.map((goal) => {
+                const pct = Math.min(100, Math.round((goal.current / goal.target) * 100))
+                const colorClasses = {
+                  mint: { border: 'hover:border-pastel-mint/40', fill: 'bg-pastel-mint', text: 'text-pastel-mint' },
+                  sky: { border: 'hover:border-pastel-sky/40', fill: 'bg-pastel-sky', text: 'text-pastel-sky' },
+                  yellow: { border: 'hover:border-pastel-yellow/40', fill: 'bg-pastel-yellow', text: 'text-pastel-yellow' },
+                  purple: { border: 'hover:border-pastel-purple/40', fill: 'bg-pastel-purple', text: 'text-pastel-purple' }
+                }[goal.color] || { border: 'hover:border-pastel-mint/40', fill: 'bg-pastel-mint', text: 'text-pastel-mint' }
 
-              return (
-                <div
-                  key={goal.id}
-                  className={`glass-panel p-5 rounded-3xl border border-white/10 ${colorClasses.border} transition-all duration-200 flex flex-col justify-between`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-2xl">{goal.emoji}</span>
-                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-400">
-                        {goal.deadline}
-                      </span>
-                    </div>
-                    <h3 className="text-sm font-bold text-white mb-1 line-clamp-1">
-                      {goal.name}
-                    </h3>
-                    <div className="flex items-baseline justify-between text-xs mb-3">
-                      <span className={`font-extrabold ${colorClasses.text} text-sm font-mono`}>
-                        {currencySymbol}{formatINRLarge(goal.current)}
-                      </span>
-                      <span className="text-slate-400 text-[11px] font-mono">
-                        Target: {currencySymbol}{formatINRLarge(goal.target)}
-                      </span>
+                return (
+                  <div
+                    key={goal.id}
+                    className={`glass-panel p-5 rounded-3xl border border-white/10 ${colorClasses.border} transition-all duration-200 flex flex-col justify-between group`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-2xl">{goal.emoji}</span>
+                        <div className="flex items-center space-x-1.5">
+                          <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-400">
+                            {goal.deadline}
+                          </span>
+                          <button
+                            onClick={() => handleDeleteGoal(goal.id, goal.name)}
+                            className="text-slate-500 hover:text-rose-400 transition p-1 rounded-lg hover:bg-white/10 opacity-70 group-hover:opacity-100"
+                            title="Delete savings goal"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <h3 className="text-sm font-bold text-white mb-1 line-clamp-1">
+                        {goal.name}
+                      </h3>
+                      <div className="flex items-baseline justify-between text-xs mb-3">
+                        <span className={`font-extrabold ${colorClasses.text} text-sm font-mono`}>
+                          {currencySymbol}{formatINRLarge(goal.current)}
+                        </span>
+                        <span className="text-slate-400 text-[11px] font-mono">
+                          Target: {currencySymbol}{formatINRLarge(goal.target)}
+                        </span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="w-full h-2 rounded-full bg-white/5 border border-white/10 overflow-hidden mb-3">
+                        <div
+                          className={`h-full ${colorClasses.fill} transition-all duration-300 rounded-full`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
                     </div>
 
-                    {/* Progress Bar */}
-                    <div className="w-full h-2 rounded-full bg-white/5 border border-white/10 overflow-hidden mb-3">
-                      <div
-                        className={`h-full ${colorClasses.fill} transition-all duration-300 rounded-full`}
-                        style={{ width: `${pct}%` }}
-                      />
+                    <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                      <span className="text-xs font-mono text-slate-400">{pct}% Funded</span>
+                      <button
+                        onClick={() => {
+                          setSelectedGoal(goal)
+                          setIsDepositModalOpen(true)
+                        }}
+                        className="text-[11px] font-bold px-3 py-1 rounded-lg bg-white/5 hover:bg-white/15 text-white border border-white/10 transition"
+                      >
+                        + Deposit
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                    <span className="text-xs font-mono text-slate-400">{pct}% Funded</span>
-                    <button
-                      onClick={() => {
-                        setSelectedGoal(goal)
-                        setIsDepositModalOpen(true)
-                      }}
-                      className="text-[11px] font-bold px-3 py-1 rounded-lg bg-white/5 hover:bg-white/15 text-white border border-white/10 transition"
-                    >
-                      + Deposit
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })
+            )}
           </div>
         </section>
 
@@ -1283,9 +1400,11 @@ export default function HomePage({ onNavigate, user, onLogout }) {
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-pastel-mint text-slate-950 font-bold text-xs hover:bg-emerald-300 transition"
+                disabled={isDepositingGoal}
+                className="w-full py-2.5 rounded-xl bg-pastel-mint text-slate-950 font-bold text-xs hover:bg-emerald-300 transition flex items-center justify-center space-x-2 disabled:opacity-60"
               >
-                Confirm Deposit
+                {isDepositingGoal && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-950" />}
+                <span>{isDepositingGoal ? 'Depositing to Vault...' : 'Confirm Deposit'}</span>
               </button>
             </form>
           </div>
@@ -1385,9 +1504,11 @@ export default function HomePage({ onNavigate, user, onLogout }) {
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full py-2.5 rounded-xl bg-pastel-mint text-slate-950 font-bold text-xs hover:bg-emerald-300 transition"
+                  disabled={isSubmittingGoal}
+                  className="w-full py-2.5 rounded-xl bg-pastel-mint text-slate-950 font-bold text-xs hover:bg-emerald-300 transition flex items-center justify-center space-x-2 disabled:opacity-60"
                 >
-                  Create Goal
+                  {isSubmittingGoal && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-950" />}
+                  <span>{isSubmittingGoal ? 'Saving Goal to Database...' : 'Create Goal'}</span>
                 </button>
               </div>
             </form>
