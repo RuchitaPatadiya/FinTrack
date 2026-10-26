@@ -39,3 +39,8 @@ class Token(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=6, description="New password must be at least 6 characters")
+

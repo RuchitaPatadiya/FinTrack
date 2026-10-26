@@ -46,6 +46,11 @@ export const authAPI = {
     api.post('/auth/reset-password', { token, new_password: newPassword }),
   getProfile: () => api.get('/auth/me'),
   updateProfile: (data) => api.patch('/auth/me', data),
+  changePassword: (currentPassword, newPassword) =>
+    api.post('/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
 }
 
 export const transactionsAPI = {
@@ -61,6 +66,20 @@ export const goalsAPI = {
   create: (data) => api.post('/goals', data),
   update: (id, data) => api.put(`/goals/${id}`, data),
   delete: (id) => api.delete(`/goals/${id}`),
+}
+
+export const categoriesAPI = {
+  list: (params) => api.get('/categories', { params }),
+  create: (data) => api.post('/categories', data),
+  update: (id, data) => api.put(`/categories/${id}`, data),
+  delete: (id) => api.delete(`/categories/${id}`),
+}
+
+export const budgetsAPI = {
+  getOverview: (month) => api.get('/budgets', { params: month ? { month } : {} }),
+  setBudget: (data) => api.post('/budgets', data),
+  update: (id, data) => api.put(`/budgets/${id}`, data),
+  delete: (id) => api.delete(`/budgets/${id}`),
 }
 
 export default api

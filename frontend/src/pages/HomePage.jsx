@@ -24,9 +24,12 @@ import {
   Target,
   Layers,
   Percent,
-  Loader2
+  Loader2,
+  Pencil,
+  Tag,
+  Sliders
 } from 'lucide-react'
-import { transactionsAPI, goalsAPI } from '../services/api'
+import { transactionsAPI, goalsAPI, categoriesAPI, budgetsAPI } from '../services/api'
 
 // Indian Rupee formatting helper
 export const formatINR = (val) => {
@@ -220,16 +223,47 @@ export default function HomePage({ onNavigate, user, onLogout }) {
 
   const [loadingTransactions, setLoadingTransactions] = useState(false)
   const [isSubmittingTx, setIsSubmittingTx] = useState(false)
+  // Categories state
+  const [categories, setCategories] = useState(TRANSACTION_CATEGORIES)
+  const [isManageCategoriesModalOpen, setIsManageCategoriesModalOpen] = useState(false)
+  const [newCatName, setNewCatName] = useState('')
+  const [newCatIcon, setNewCatIcon] = useState('🏷️')
+  const [newCatColor, setNewCatColor] = useState('mint')
+  const [newCatType, setNewCatType] = useState('expense')
+  const [isCreatingCat, setIsCreatingCat] = useState(false)
+
+  // Budgets state
+  const [budgetOverview, setBudgetOverview] = useState(null)
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false)
+  const [isSubmittingBudget, setIsSubmittingBudget] = useState(false)
+  const [showCategoryBudgets, setShowCategoryBudgets] = useState(true)
+  const [budgetCeilingInput, setBudgetCeilingInput] = useState('50000')
+  const [catBudgetLimitsInput, setCatBudgetLimitsInput] = useState({})
+
+  // Pagination
+  const [txLimit] = useState(50)
+  const [txOffset, setTxOffset] = useState(0)
+  const [hasMoreTx, setHasMoreTx] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   // Fetch transactions from backend database for authenticated users
   useEffect(() => {
     if (isRealUser) {
-      setLoadingTransactions(true)
+      if (txOffset === 0) {
+        setLoadingTransactions(true)
+      } else {
+        setIsLoadingMore(true)
+      }
       transactionsAPI
-        .list()
+        .list({ limit: txLimit, offset: txOffset })
         .then((res) => {
           if (Array.isArray(res.data)) {
-            setTransactions(res.data)
+            if (txOffset === 0) {
+              setTransactions(res.data)
+            } else {
+              setTransactions((prev) => [...prev, ...res.data])
+            }
+            setHasMoreTx(res.data.length === txLimit)
           }
         })
         .catch((err) => {
@@ -237,9 +271,10 @@ export default function HomePage({ onNavigate, user, onLogout }) {
         })
         .finally(() => {
           setLoadingTransactions(false)
+          setIsLoadingMore(false)
         })
     }
-  }, [isRealUser, user?.id])
+  }, [isRealUser, user?.id, txOffset])
 
   // Load stored savings goals or default
   const [savingsGoals, setSavingsGoals] = useState(() => {
@@ -285,6 +320,61 @@ export default function HomePage({ onNavigate, user, onLogout }) {
         })
     }
   }, [isRealUser, user?.id])
+
+  // Load dynamic categories from backend
+  useEffect(() => {
+    if (isRealUser) {
+      categoriesAPI
+        .list()
+        .then((res) => {
+          if (Array.isArray(res.data) && res.data.length > 0) {
+            const mapped = res.data.map((c) => ({
+              id: c.id,
+              label: c.name,
+              icon: c.icon || '📦',
+              color: c.color || 'slate',
+              isIncome: c.type === 'income',
+              isCustom: !c.is_system
+            }))
+            setCategories(mapped)
+          }
+        })
+        .catch((err) => {
+          console.warn('Could not load categories from DB, using fallback:', err)
+        })
+    }
+  }, [isRealUser])
+
+  // Load live monthly budget overview
+  const loadBudgetOverview = () => {
+    if (isRealUser) {
+      budgetsAPI
+        .getOverview()
+        .then((res) => {
+          if (res.data) {
+            setBudgetOverview(res.data)
+            if (res.data.overall_budget?.amount_limit) {
+              setBudgetLimit(res.data.overall_budget.amount_limit)
+              setBudgetCeilingInput(String(res.data.overall_budget.amount_limit))
+            }
+            const inputs = {}
+            if (Array.isArray(res.data.category_budgets)) {
+              res.data.category_budgets.forEach((cb) => {
+                inputs[cb.category_name] = String(cb.amount_limit)
+              })
+            }
+            setCatBudgetLimitsInput(inputs)
+          }
+        })
+        .catch((err) => {
+          console.warn('Could not load budget overview from DB:', err)
+        })
+    }
+  }
+
+  useEffect(() => {
+    loadBudgetOverview()
+  }, [isRealUser, transactions])
 
   // Budget settings from profile or default INR 50,000
   const [budgetLimit, setBudgetLimit] = useState(() => {
@@ -348,6 +438,28 @@ export default function HomePage({ onNavigate, user, onLogout }) {
   const [newGoalDeadline, setNewGoalDeadline] = useState('')
   const [newGoalEmoji, setNewGoalEmoji] = useState('🎯')
   const [newGoalColor, setNewGoalColor] = useState('mint')
+
+  // Edit Transaction state
+  const [isEditTxModalOpen, setIsEditTxModalOpen] = useState(false)
+  const [editingTx, setEditingTx] = useState(null)
+  const [editTxTitle, setEditTxTitle] = useState('')
+  const [editTxAmount, setEditTxAmount] = useState('')
+  const [editTxType, setEditTxType] = useState('expense')
+  const [editTxCategory, setEditTxCategory] = useState(TRANSACTION_CATEGORIES[0].label)
+  const [editTxEmoji, setEditTxEmoji] = useState(TRANSACTION_CATEGORIES[0].icon)
+  const [editTxPaymentMethod, setEditTxPaymentMethod] = useState(PAYMENT_METHODS[0])
+  const [editTxDate, setEditTxDate] = useState('')
+  const [isUpdatingTx, setIsUpdatingTx] = useState(false)
+
+  // Edit Goal state
+  const [isEditGoalModalOpen, setIsEditGoalModalOpen] = useState(false)
+  const [editingGoal, setEditingGoal] = useState(null)
+  const [editGoalName, setEditGoalName] = useState('')
+  const [editGoalTarget, setEditGoalTarget] = useState('')
+  const [editGoalDeadline, setEditGoalDeadline] = useState('')
+  const [editGoalEmoji, setEditGoalEmoji] = useState('🎯')
+  const [editGoalColor, setEditGoalColor] = useState('mint')
+  const [isUpdatingGoal, setIsUpdatingGoal] = useState(false)
 
   // Toast trigger
   const showToast = (msg) => {
@@ -651,6 +763,240 @@ export default function HomePage({ onNavigate, user, onLogout }) {
     showToast('Transaction removed')
   }
 
+  // Open edit transaction modal pre-filled
+  const handleOpenEditTx = (tx) => {
+    setEditingTx(tx)
+    setEditTxTitle(tx.title || '')
+    setEditTxAmount(String(tx.amount || ''))
+    setEditTxType(tx.type || 'expense')
+    setEditTxCategory(tx.category || TRANSACTION_CATEGORIES[0].label)
+    setEditTxEmoji(tx.emoji || TRANSACTION_CATEGORIES[0].icon)
+    setEditTxPaymentMethod(tx.payment_method || tx.paymentMethod || PAYMENT_METHODS[0])
+    setEditTxDate(tx.date || new Date().toISOString().split('T')[0])
+    setIsEditTxModalOpen(true)
+  }
+
+  // Submit transaction edit
+  const handleUpdateTransaction = async (e) => {
+    e.preventDefault()
+    const numAmount = parseFloat(editTxAmount)
+    if (!editingTx || isNaN(numAmount) || numAmount <= 0) return
+
+    const payload = {
+      title: editTxTitle.trim(),
+      amount: numAmount,
+      type: editTxType,
+      category: editTxCategory,
+      emoji: editTxEmoji,
+      payment_method: editTxPaymentMethod,
+      paymentMethod: editTxPaymentMethod,
+      date: editTxDate
+    }
+
+    if (isRealUser && typeof editingTx.id === 'number') {
+      setIsUpdatingTx(true)
+      try {
+        const res = await transactionsAPI.update(editingTx.id, payload)
+        setTransactions((prev) =>
+          prev.map((t) => (t.id === editingTx.id ? { ...res.data, paymentMethod: res.data.payment_method } : t))
+        )
+        setIsEditTxModalOpen(false)
+        showToast('Transaction updated successfully')
+      } catch (err) {
+        console.error('Failed to update transaction:', err)
+        alert('Failed to update: ' + (err.response?.data?.detail || err.message))
+      } finally {
+        setIsUpdatingTx(false)
+      }
+      return
+    }
+
+    // Guest / demo fallback
+    setTransactions((prev) =>
+      prev.map((t) => (t.id === editingTx.id ? { ...t, ...payload } : t))
+    )
+    setIsEditTxModalOpen(false)
+    showToast('Transaction updated')
+  }
+
+  // Open edit goal modal pre-filled
+  const handleOpenEditGoal = (goal) => {
+    setEditingGoal(goal)
+    setEditGoalName(goal.name || '')
+    setEditGoalTarget(String(goal.target || ''))
+    setEditGoalDeadline(goal.deadline || '')
+    setEditGoalEmoji(goal.emoji || '🎯')
+    setEditGoalColor(goal.color || 'mint')
+    setIsEditGoalModalOpen(true)
+  }
+
+  // Submit goal edit
+  const handleUpdateGoal = async (e) => {
+    e.preventDefault()
+    const target = parseFloat(editGoalTarget)
+    if (!editingGoal || !editGoalName.trim() || isNaN(target) || target <= 0) return
+
+    const payload = {
+      name: editGoalName.trim(),
+      target,
+      deadline: editGoalDeadline.trim() || null,
+      emoji: editGoalEmoji,
+      color: editGoalColor
+    }
+
+    if (isRealUser && typeof editingGoal.id === 'number') {
+      setIsUpdatingGoal(true)
+      try {
+        const res = await goalsAPI.update(editingGoal.id, payload)
+        setSavingsGoals((prev) =>
+          prev.map((g) => (g.id === editingGoal.id ? res.data : g))
+        )
+        setIsEditGoalModalOpen(false)
+        showToast('Savings goal updated')
+      } catch (err) {
+        console.error('Failed to update goal:', err)
+        alert('Failed to update: ' + (err.response?.data?.detail || err.message))
+      } finally {
+        setIsUpdatingGoal(false)
+      }
+      return
+    }
+
+    // Guest / demo fallback
+    setSavingsGoals((prev) =>
+      prev.map((g) => (g.id === editingGoal.id ? { ...g, ...payload } : g))
+    )
+    setIsEditGoalModalOpen(false)
+    showToast('Savings goal updated')
+  }
+
+  // Category Handlers
+  const handleCreateCategory = async (e) => {
+    e.preventDefault()
+    if (!newCatName.trim()) return
+
+    const payload = {
+      name: newCatName.trim(),
+      icon: newCatIcon || '🏷️',
+      color: newCatColor || 'mint',
+      type: newCatType
+    }
+
+    if (isRealUser) {
+      setIsCreatingCat(true)
+      try {
+        const res = await categoriesAPI.create(payload)
+        const createdCat = {
+          id: res.data.id,
+          label: res.data.name,
+          icon: res.data.icon,
+          color: res.data.color,
+          isIncome: res.data.type === 'income',
+          isCustom: true
+        }
+        setCategories((prev) => [...prev, createdCat])
+        setNewCatName('')
+        showToast(`Category "${res.data.name}" created!`)
+      } catch (err) {
+        console.error('Failed to create category:', err)
+        alert('Failed to create category: ' + (err.response?.data?.detail || err.message))
+      } finally {
+        setIsCreatingCat(false)
+      }
+      return
+    }
+
+    // Demo/guest fallback
+    const custom = {
+      id: `cat-${Date.now()}`,
+      label: newCatName.trim(),
+      icon: newCatIcon || '🏷️',
+      color: newCatColor || 'mint',
+      isIncome: newCatType === 'income',
+      isCustom: true
+    }
+    setCategories((prev) => [...prev, custom])
+    setNewCatName('')
+    showToast(`Category "${custom.label}" added!`)
+  }
+
+  const handleDeleteCategory = async (catId, catLabel) => {
+    if (!window.confirm(`Delete custom category "${catLabel}"?`)) return
+
+    if (isRealUser && typeof catId === 'number') {
+      try {
+        await categoriesAPI.delete(catId)
+        setCategories((prev) => prev.filter((c) => c.id !== catId))
+        showToast('Category deleted')
+        return
+      } catch (err) {
+        console.error('Failed to delete category:', err)
+        alert('Failed to delete: ' + (err.response?.data?.detail || err.message))
+        return
+      }
+    }
+
+    setCategories((prev) => prev.filter((c) => c.id !== catId))
+    showToast('Category deleted')
+  }
+
+  // Save Budgets Handler
+  const handleSaveBudgets = async (e) => {
+    e.preventDefault()
+    const ceiling = parseFloat(budgetCeilingInput)
+    if (isNaN(ceiling) || ceiling <= 0) {
+      alert('Please enter a valid monthly ceiling amount.')
+      return
+    }
+
+    const monthStr = new Date().toISOString().substring(0, 7)
+
+    if (isRealUser) {
+      setIsSubmittingBudget(true)
+      try {
+        // 1. Save master ceiling
+        await budgetsAPI.setBudget({
+          amount_limit: ceiling,
+          month_year: monthStr,
+          category_name: null
+        })
+        setBudgetLimit(ceiling)
+
+        // 2. Save configured category limits
+        for (const [catName, limitStr] of Object.entries(catBudgetLimitsInput)) {
+          const numLimit = parseFloat(limitStr)
+          if (!isNaN(numLimit) && numLimit > 0) {
+            await budgetsAPI.setBudget({
+              amount_limit: numLimit,
+              month_year: monthStr,
+              category_name: catName
+            })
+          }
+        }
+
+        loadBudgetOverview()
+        setIsBudgetModalOpen(false)
+        showToast('Monthly & category budgets saved to database!')
+      } catch (err) {
+        console.error('Failed to save budgets:', err)
+        alert('Failed to save budget: ' + (err.response?.data?.detail || err.message))
+      } finally {
+        setIsSubmittingBudget(false)
+      }
+      return
+    }
+
+    // Demo/guest fallback
+    setBudgetLimit(ceiling)
+    try {
+      const prefs = JSON.parse(localStorage.getItem('fintrack_profile_prefs') || '{}')
+      prefs.monthlyBudgetLimit = ceiling
+      localStorage.setItem('fintrack_profile_prefs', JSON.stringify(prefs))
+    } catch {}
+    setIsBudgetModalOpen(false)
+    showToast('Monthly budget updated!')
+  }
+
   // Budget calculations
   const budgetSpentPct = budgetLimit > 0 ? Math.min(100, Math.round((totalExpenses / budgetLimit) * 100)) : 0
   const budgetRemaining = Math.max(0, budgetLimit - totalExpenses)
@@ -690,6 +1036,12 @@ export default function HomePage({ onNavigate, user, onLogout }) {
               <button className="px-3.5 py-1 rounded-full bg-white/10 text-pastel-mint font-semibold shadow-sm flex items-center space-x-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-pastel-mint" />
                 <span>Dashboard</span>
+              </button>
+              <button
+                onClick={() => onNavigate('analytics')}
+                className="px-3.5 py-1 rounded-full text-slate-400 hover:text-white transition flex items-center space-x-1"
+              >
+                <span>Analytics</span>
               </button>
               <button
                 onClick={() => onNavigate('profile')}
@@ -838,28 +1190,44 @@ export default function HomePage({ onNavigate, user, onLogout }) {
           </div>
         </div>
 
-        {/* MONTHLY BUDGET PROGRESS BAR */}
-        <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        {/* MONTHLY BUDGET PROGRESS BAR & CATEGORY LIMITS */}
+        <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center space-x-2">
-                <span>Monthly Spending Budget</span>
-                {budgetSpentPct >= 90 && (
-                  <span className="inline-flex items-center space-x-1 text-xs text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/30">
-                    <AlertTriangle className="h-3 w-3" />
-                    <span>Near Ceiling</span>
-                  </span>
-                )}
-              </h2>
+              <div className="flex items-center space-x-2">
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center space-x-2">
+                  <span>Monthly Spending Budget</span>
+                  {budgetSpentPct >= 90 && (
+                    <span className="inline-flex items-center space-x-1 text-xs text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/30">
+                      <AlertTriangle className="h-3 w-3" />
+                      <span>Near Ceiling</span>
+                    </span>
+                  )}
+                </h2>
+              </div>
               <p className="text-xs text-slate-400 mt-0.5">
                 {currencySymbol}{formatINR(totalExpenses)} spent of {currencySymbol}{formatINR(budgetLimit)} monthly budget limit
               </p>
             </div>
-            <div className="text-right">
-              <span className="text-xs font-mono text-slate-400">Remaining Buffer: </span>
-              <span className="text-sm font-bold font-mono text-pastel-mint">
-                {currencySymbol}{formatINR(budgetRemaining)}
-              </span>
+
+            {/* Budget Action Buttons */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setIsBudgetModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-pastel-sky transition flex items-center space-x-1.5"
+                title="Configure monthly and category budget limits"
+              >
+                <Sliders className="h-3 w-3" />
+                <span>Set Budgets</span>
+              </button>
+              <button
+                onClick={() => setIsManageCategoriesModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-pastel-mint transition flex items-center space-x-1.5"
+                title="Manage custom expense and income categories"
+              >
+                <Tag className="h-3 w-3" />
+                <span>Categories</span>
+              </button>
             </div>
           </div>
 
@@ -874,9 +1242,64 @@ export default function HomePage({ onNavigate, user, onLogout }) {
 
           <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
             <span>0%</span>
-            <span>{budgetSpentPct}% Utilized</span>
+            <span>{budgetSpentPct}% Utilized (Buffer: {currencySymbol}{formatINR(budgetRemaining)})</span>
             <span>100% ({currencySymbol}{formatINRLarge(budgetLimit)})</span>
           </div>
+
+          {/* Category-Level Budget Limit Meters */}
+          {budgetOverview?.category_budgets && budgetOverview.category_budgets.length > 0 && (
+            <div className="pt-3 border-t border-white/5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                  Configured Category Limits ({budgetOverview.category_budgets.length})
+                </span>
+                <button
+                  onClick={() => setShowCategoryBudgets(!showCategoryBudgets)}
+                  className="text-[11px] text-pastel-sky hover:underline font-mono"
+                >
+                  {showCategoryBudgets ? 'Collapse' : 'Expand'}
+                </button>
+              </div>
+
+              {showCategoryBudgets && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {budgetOverview.category_budgets.map((cb) => (
+                    <div
+                      key={cb.id}
+                      className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-2 hover:border-white/10 transition"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-white truncate max-w-[140px]">{cb.category_name}</span>
+                        <span
+                          className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                            cb.is_over_budget
+                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                              : cb.is_near_ceiling
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                              : 'bg-pastel-mint/15 text-pastel-mint'
+                          }`}
+                        >
+                          {cb.percentage_spent}%
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
+                        <div
+                          style={{ width: `${Math.min(100, cb.percentage_spent)}%` }}
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            cb.is_over_budget ? 'bg-rose-500' : cb.is_near_ceiling ? 'bg-amber-400' : 'bg-pastel-mint'
+                          }`}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                        <span>Spent: {currencySymbol}{formatINRLarge(cb.spent_amount)}</span>
+                        <span>Limit: {currencySymbol}{formatINRLarge(cb.amount_limit)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* SAVINGS GOALS SECTION */}
@@ -931,6 +1354,13 @@ export default function HomePage({ onNavigate, user, onLogout }) {
                           <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-400">
                             {goal.deadline}
                           </span>
+                          <button
+                            onClick={() => handleOpenEditGoal(goal)}
+                            className="text-slate-500 hover:text-pastel-sky transition p-1 rounded-lg hover:bg-white/10 opacity-70 group-hover:opacity-100"
+                            title="Edit savings goal"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
                           <button
                             onClick={() => handleDeleteGoal(goal.id, goal.name)}
                             className="text-slate-500 hover:text-rose-400 transition p-1 rounded-lg hover:bg-white/10 opacity-70 group-hover:opacity-100"
@@ -1093,6 +1523,13 @@ export default function HomePage({ onNavigate, user, onLogout }) {
                           {isIncome ? '+' : '-'}{currencySymbol}{formatINR(tx.amount)}
                         </span>
                         <button
+                          onClick={() => handleOpenEditTx(tx)}
+                          className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-pastel-sky transition p-1"
+                          title="Edit transaction"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
                           onClick={() => handleDeleteTx(tx.id)}
                           className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 transition p-1"
                           title="Delete transaction"
@@ -1105,6 +1542,20 @@ export default function HomePage({ onNavigate, user, onLogout }) {
                 })
               )}
             </div>
+
+            {/* Load More Transactions */}
+            {isRealUser && hasMoreTx && (
+              <div className="flex justify-center pt-2">
+                <button
+                  onClick={() => setTxOffset((prev) => prev + txLimit)}
+                  disabled={isLoadingMore}
+                  className="px-5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 transition flex items-center space-x-2 disabled:opacity-50"
+                >
+                  {isLoadingMore && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  <span>{isLoadingMore ? 'Loading...' : 'Load More Transactions'}</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* RIGHT: DYNAMIC CATEGORY BREAKDOWN & SUMMARY (5 Cols) */}
@@ -1294,19 +1745,29 @@ export default function HomePage({ onNavigate, user, onLogout }) {
 
               {/* Category Dropdown */}
               <div>
-                <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1">
-                  Category
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300">
+                    Category
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsManageCategoriesModalOpen(true)}
+                    className="text-[10px] text-pastel-sky hover:underline flex items-center space-x-1"
+                  >
+                    <Tag className="h-2.5 w-2.5" />
+                    <span>+ Custom Category</span>
+                  </button>
+                </div>
                 <select
                   value={txCategory}
                   onChange={(e) => {
-                    const catObj = TRANSACTION_CATEGORIES.find((c) => c.label === e.target.value)
+                    const catObj = categories.find((c) => c.label === e.target.value)
                     setTxCategory(e.target.value)
                     if (catObj) setTxEmoji(catObj.icon)
                   }}
                   className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-pastel-mint"
                 >
-                  {TRANSACTION_CATEGORIES.filter((c) => (txType === 'income' ? c.isIncome : !c.isIncome)).map((cat) => (
+                  {categories.filter((c) => (txType === 'income' ? c.isIncome : !c.isIncome)).map((cat) => (
                     <option key={cat.label} value={cat.label}>
                       {cat.icon} {cat.label}
                     </option>
@@ -1515,6 +1976,468 @@ export default function HomePage({ onNavigate, user, onLogout }) {
           </div>
         </div>
       )}
+
+      {/* MODAL: EDIT TRANSACTION */}
+      {isEditTxModalOpen && editingTx && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="max-w-md w-full glass-panel rounded-3xl border border-white/15 p-6 shadow-2xl relative overflow-hidden bg-[#0D101A]">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
+              <div className="flex items-center space-x-2">
+                <Pencil className="h-4 w-4 text-pastel-sky" />
+                <h3 className="text-base font-bold text-white font-display">
+                  Edit Transaction
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsEditTxModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateTransaction} className="space-y-4">
+              {/* Type Switcher */}
+              <div className="grid grid-cols-2 gap-2 bg-[#141826] p-1 rounded-xl border border-white/5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditTxType('expense')
+                    setEditTxCategory('Food & Dining')
+                    setEditTxEmoji('🍽️')
+                  }}
+                  className={`py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
+                    editTxType === 'expense'
+                      ? 'bg-pastel-pink/20 text-pastel-pink border border-pastel-pink/40 shadow-glow-pink'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                  <span>Expense</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditTxType('income')
+                    setEditTxCategory('Salary & Income')
+                    setEditTxEmoji('💼')
+                  }}
+                  className={`py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1.5 ${
+                    editTxType === 'income'
+                      ? 'bg-pastel-mint/20 text-pastel-mint border border-pastel-mint/40 shadow-glow-mint'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <ArrowDownLeft className="h-3.5 w-3.5" />
+                  <span>Income</span>
+                </button>
+              </div>
+
+              {/* Amount Input */}
+              <div>
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1">
+                  Amount (₹ INR)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-base font-bold text-slate-400">{currencySymbol}</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={editTxAmount}
+                    onChange={(e) => setEditTxAmount(e.target.value)}
+                    className="w-full pl-8 pr-4 py-2.5 bg-[#141826] border border-white/10 rounded-xl text-lg font-bold font-mono text-white placeholder-slate-600 focus:outline-none focus:border-pastel-mint"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Description / Merchant */}
+              <div>
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1">
+                  Description / Merchant
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Grocery Market, Rent, Salary Deposit"
+                  value={editTxTitle}
+                  onChange={(e) => setEditTxTitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#141826] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pastel-mint"
+                  required
+                />
+              </div>
+
+              {/* Category Dropdown */}
+              <div>
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1">
+                  Category
+                </label>
+                <select
+                  value={editTxCategory}
+                  onChange={(e) => {
+                    const catObj = categories.find((c) => c.label === e.target.value)
+                    setEditTxCategory(e.target.value)
+                    if (catObj) setEditTxEmoji(catObj.icon)
+                  }}
+                  className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-pastel-mint"
+                >
+                  {categories.filter((c) => (editTxType === 'income' ? c.isIncome : !c.isIncome)).map((cat) => (
+                    <option key={cat.label} value={cat.label}>
+                      {cat.icon} {cat.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Payment Method & Date Row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1">
+                    Payment Method
+                  </label>
+                  <select
+                    value={editTxPaymentMethod}
+                    onChange={(e) => setEditTxPaymentMethod(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-pastel-mint"
+                  >
+                    {PAYMENT_METHODS.map((method) => (
+                      <option key={method} value={method}>{method}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editTxDate}
+                    onChange={(e) => setEditTxDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-pastel-mint"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3">
+                <button
+                  type="submit"
+                  disabled={isUpdatingTx}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-pastel-sky to-pastel-mint text-slate-950 font-bold text-xs shadow-glow-sky hover:opacity-95 transition flex items-center justify-center space-x-2 disabled:opacity-60"
+                >
+                  {isUpdatingTx && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-950" />}
+                  <span>{isUpdatingTx ? 'Updating Transaction...' : 'Update Transaction'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT SAVINGS GOAL */}
+      {isEditGoalModalOpen && editingGoal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="max-w-sm w-full glass-panel rounded-3xl border border-white/15 p-6 shadow-2xl relative overflow-hidden bg-[#0D101A]">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+              <div className="flex items-center space-x-2">
+                <Pencil className="h-4 w-4 text-pastel-sky" />
+                <h3 className="text-sm font-bold text-white">Edit Savings Goal</h3>
+              </div>
+              <button
+                onClick={() => setIsEditGoalModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateGoal} className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1">
+                  Goal Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Wedding, Emergency Fund, New Car"
+                  value={editGoalName}
+                  onChange={(e) => setEditGoalName(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-pastel-mint"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1">
+                  Target Amount ({currencySymbol})
+                </label>
+                <input
+                  type="number"
+                  placeholder="100000"
+                  value={editGoalTarget}
+                  onChange={(e) => setEditGoalTarget(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-pastel-mint"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1">
+                  Target Date / Deadline
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Dec 2026, Diwali 2027"
+                  value={editGoalDeadline}
+                  onChange={(e) => setEditGoalDeadline(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#141826] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-pastel-mint"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1">
+                  Goal Icon
+                </label>
+                <div className="flex items-center space-x-2">
+                  {['🛡️', '🏠', '🚗', '✈️', '💻', '📈', '🎓', '🎯'].map((em) => (
+                    <button
+                      key={em}
+                      type="button"
+                      onClick={() => setEditGoalEmoji(em)}
+                      className={`text-lg p-1.5 rounded-lg ${editGoalEmoji === em ? 'bg-white/20' : 'hover:bg-white/5'}`}
+                    >
+                      {em}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isUpdatingGoal}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pastel-sky to-pastel-mint text-slate-950 font-bold text-xs hover:opacity-95 transition flex items-center justify-center space-x-2 disabled:opacity-60"
+                >
+                  {isUpdatingGoal && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-950" />}
+                  <span>{isUpdatingGoal ? 'Saving Changes...' : 'Update Goal'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* MODAL: MANAGE CATEGORIES */}
+      {isManageCategoriesModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="max-w-lg w-full glass-panel rounded-3xl border border-white/15 p-6 shadow-2xl relative overflow-hidden bg-[#0D101A] max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4 flex-shrink-0">
+              <div className="flex items-center space-x-2">
+                <Tag className="h-4 w-4 text-pastel-mint" />
+                <h3 className="text-base font-bold text-white font-display">Manage Categories</h3>
+              </div>
+              <button
+                onClick={() => setIsManageCategoriesModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto space-y-5 pr-1">
+              {/* Add Category Form */}
+              <form onSubmit={handleCreateCategory} className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                <span className="text-xs font-bold text-white">Create Custom Category</span>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-mono uppercase text-slate-300 mb-1">Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Pet Care, Gym"
+                      value={newCatName}
+                      onChange={(e) => setNewCatName(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-[#141826] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-pastel-mint"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono uppercase text-slate-300 mb-1">Type</label>
+                    <div className="grid grid-cols-2 gap-1 bg-[#141826] p-1 rounded-xl border border-white/10 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setNewCatType('expense')}
+                        className={`py-1 rounded-lg font-bold ${newCatType === 'expense' ? 'bg-pastel-pink/20 text-pastel-pink' : 'text-slate-400'}`}
+                      >
+                        Expense
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewCatType('income')}
+                        className={`py-1 rounded-lg font-bold ${newCatType === 'income' ? 'bg-pastel-mint/20 text-pastel-mint' : 'text-slate-400'}`}
+                      >
+                        Income
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-mono uppercase text-slate-300 mb-1">Emoji Icon</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['🐾', '🏋️', '📚', '👶', '🎮', '💡', '🎁', '☕', '💅', '✈️', '💻', '🏷️'].map((em) => (
+                      <button
+                        key={em}
+                        type="button"
+                        onClick={() => setNewCatIcon(em)}
+                        className={`text-base p-1.5 rounded-lg ${newCatIcon === em ? 'bg-white/20 scale-110' : 'hover:bg-white/5'}`}
+                      >
+                        {em}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isCreatingCat}
+                  className="w-full py-2 rounded-xl bg-pastel-mint text-slate-950 font-bold text-xs hover:bg-emerald-300 transition flex items-center justify-center space-x-1.5 disabled:opacity-50"
+                >
+                  {isCreatingCat && <Loader2 className="h-3 w-3 animate-spin text-slate-950" />}
+                  <span>{isCreatingCat ? 'Adding Category...' : '+ Add Category'}</span>
+                </button>
+              </form>
+
+              {/* Existing Categories List */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                  Active Categories ({categories.length})
+                </span>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {categories.map((cat) => (
+                    <div
+                      key={cat.id || cat.label}
+                      className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between text-xs"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <span className="text-base">{cat.icon}</span>
+                        <span className="font-semibold text-white">{cat.label}</span>
+                        <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${cat.isIncome ? 'bg-pastel-mint/15 text-pastel-mint' : 'bg-pastel-pink/15 text-pastel-pink'}`}>
+                          {cat.isIncome ? 'Income' : 'Expense'}
+                        </span>
+                      </div>
+                      {cat.isCustom && (
+                        <button
+                          onClick={() => handleDeleteCategory(cat.id, cat.label)}
+                          className="text-slate-500 hover:text-rose-400 p-1"
+                          title="Delete custom category"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CONFIGURE BUDGETS */}
+      {isBudgetModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="max-w-lg w-full glass-panel rounded-3xl border border-white/15 p-6 shadow-2xl relative overflow-hidden bg-[#0D101A] max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4 flex-shrink-0">
+              <div className="flex items-center space-x-2">
+                <Sliders className="h-4 w-4 text-pastel-sky" />
+                <h3 className="text-base font-bold text-white font-display">Configure Monthly Budgets</h3>
+              </div>
+              <button
+                onClick={() => setIsBudgetModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBudgets} className="overflow-y-auto space-y-4 pr-1">
+              {/* Master Monthly Spending Ceiling */}
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+                <label className="block text-xs font-bold text-white">
+                  Overall Monthly Spending Ceiling ({currencySymbol} INR)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-sm font-bold text-slate-400">{currencySymbol}</span>
+                  <input
+                    type="number"
+                    step="500"
+                    placeholder="50000"
+                    value={budgetCeilingInput}
+                    onChange={(e) => setBudgetCeilingInput(e.target.value)}
+                    className="w-full pl-8 pr-4 py-2 bg-[#141826] border border-white/10 rounded-xl text-sm font-bold font-mono text-white focus:outline-none focus:border-pastel-sky"
+                    required
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Global spending threshold used for top dashboard warnings and alerts.
+                </p>
+              </div>
+
+              {/* Category-Specific Limits */}
+              <div className="space-y-2.5">
+                <span className="text-xs font-bold text-white">
+                  Category Limits (Optional)
+                </span>
+                <p className="text-[11px] text-slate-400">
+                  Set specific monthly spending caps for individual categories.
+                </p>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {categories.filter((c) => !c.isIncome).map((cat) => (
+                    <div
+                      key={cat.label}
+                      className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="flex items-center space-x-2 truncate">
+                        <span>{cat.icon}</span>
+                        <span className="text-slate-200 font-medium truncate">{cat.label}</span>
+                      </div>
+                      <div className="flex items-center space-x-1.5 flex-shrink-0">
+                        <span className="text-slate-500 font-mono">₹</span>
+                        <input
+                          type="number"
+                          step="500"
+                          placeholder="e.g. 8000"
+                          value={catBudgetLimitsInput[cat.label] || ''}
+                          onChange={(e) =>
+                            setCatBudgetLimitsInput({
+                              ...catBudgetLimitsInput,
+                              [cat.label]: e.target.value
+                            })
+                          }
+                          className="w-24 px-2 py-1 bg-[#141826] border border-white/10 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-pastel-sky"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isSubmittingBudget}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pastel-sky to-pastel-mint text-slate-950 font-bold text-xs shadow-glow-sky hover:opacity-95 transition flex items-center justify-center space-x-2 disabled:opacity-50"
+                >
+                  {isSubmittingBudget && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-950" />}
+                  <span>{isSubmittingBudget ? 'Saving Budgets...' : 'Save Budgets'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

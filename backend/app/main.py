@@ -7,9 +7,14 @@ from backend.app.core.database import engine, Base
 import backend.app.accounts.models  # noqa: F401
 import backend.app.transactions.models  # noqa: F401
 import backend.app.goals.models  # noqa: F401
+import backend.app.categories.models  # noqa: F401
+import backend.app.budgets.models  # noqa: F401
+
 from backend.app.accounts.routes import router as accounts_router
 from backend.app.transactions.routes import router as transactions_router
 from backend.app.goals.routes import router as goals_router
+from backend.app.categories.routes import router as categories_router
+from backend.app.budgets.routes import router as budgets_router
 
 # Create tables in database (runs on startup/import)
 Base.metadata.create_all(bind=engine)
@@ -34,6 +39,8 @@ if settings.cors_origins:
 app.include_router(accounts_router, prefix=settings.API_V1_STR)
 app.include_router(transactions_router, prefix=settings.API_V1_STR)
 app.include_router(goals_router, prefix=settings.API_V1_STR)
+app.include_router(categories_router, prefix=settings.API_V1_STR)
+app.include_router(budgets_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def read_root():

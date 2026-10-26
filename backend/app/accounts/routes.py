@@ -26,6 +26,7 @@ from backend.app.accounts.schemas import (
     UserCreate,
     UserLogin,
     UserUpdate,
+    ChangePasswordRequest,
     GoogleAuthRequest,
     ForgotPasswordRequest,
     ResetPasswordRequest,
@@ -205,3 +206,24 @@ def update_current_user_profile(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+@router.post("/change-password", response_model=MessageResponse)
+def change_password(
+    data: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Change the authenticated user's password."""
+    if not current_user.hashed_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google accounts cannot change password here."
+        )
+    if not verify_password(data.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password."
+        )
+    current_user.hashed_password = get_password_hash(data.new_password)
+    db.commit()
+    return MessageResponse(message="Password changed successfully.")
