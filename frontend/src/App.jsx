@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import LandingPage from './pages/LandingPage'
 import HomePage from './pages/HomePage'
 import ProfilePage from './pages/ProfilePage'
+import AnalyticsPage from './pages/AnalyticsPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
@@ -48,6 +49,25 @@ function AppContent({ googleClientId }) {
     case 'home':
       return (
         <HomePage
+          user={activeUser}
+          onNavigate={(targetView) => {
+            if (targetView === 'landing') {
+              if (isAuthenticated) return
+              setIsDemoMode(false)
+            }
+            setView(targetView)
+          }}
+          onLogout={() => {
+            setIsDemoMode(false)
+            if (logout) logout()
+            setView('landing')
+          }}
+        />
+      )
+
+    case 'analytics':
+      return (
+        <AnalyticsPage
           user={activeUser}
           onNavigate={(targetView) => {
             if (targetView === 'landing') {

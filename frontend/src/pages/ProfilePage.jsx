@@ -17,9 +17,11 @@ import {
   Bell,
   FileSpreadsheet,
   AlertTriangle,
-  CreditCard
+  CreditCard,
+  Loader2,
+  Key
 } from 'lucide-react'
-import { authAPI } from '../services/api'
+import { authAPI, transactionsAPI, goalsAPI } from '../services/api'
 
 const CURRENCIES = [
   { code: 'INR', symbol: '₹', label: 'Indian Rupee (₹)' },
@@ -75,6 +77,13 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
   const [activeTab, setActiveTab] = useState('account') // 'account', 'budget', 'data', 'security'
   const [toastMessage, setToastMessage] = useState('')
   const [isSaved, setIsSaved] = useState(false)
+  const [isExportingJSON, setIsExportingJSON] = useState(false)
+  const [isExportingCSV, setIsExportingCSV] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordChangeMsg, setPasswordChangeMsg] = useState(null)
 
   const isRealUser = Boolean(
     user &&
@@ -114,16 +123,28 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
     setTimeout(() => setToastMessage(''), 3500)
   }
 
-  // Export JSON backup
-  const handleExportJSON = () => {
+  // Export JSON backup (live from DB for authenticated users)
+  const handleExportJSON = async () => {
     try {
-      const txs = localStorage.getItem('fintrack_tx_list') || '[]'
-      const vaults = localStorage.getItem('fintrack_vaults') || '[]'
+      setIsExportingJSON(true)
+      let txs = []
+      let vaults = []
+      if (isRealUser) {
+        const [txRes, goalsRes] = await Promise.all([
+          transactionsAPI.list({ limit: 500 }),
+          goalsAPI.list()
+        ])
+        txs = txRes.data || []
+        vaults = goalsRes.data || []
+      } else {
+        txs = JSON.parse(localStorage.getItem('fintrack_tx_list') || '[]')
+        vaults = JSON.parse(localStorage.getItem('fintrack_vaults') || '[]')
+      }
       const exportObject = {
         user: profileData,
         exportedAt: new Date().toISOString(),
-        transactions: JSON.parse(txs),
-        savingsGoals: JSON.parse(vaults)
+        transactions: txs,
+        savingsGoals: vaults
       }
       const blob = new Blob([JSON.stringify(exportObject, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
@@ -135,13 +156,22 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
       showToast('Backup JSON downloaded successfully.')
     } catch {
       showToast('Failed to export data.')
+    } finally {
+      setIsExportingJSON(false)
     }
   }
 
-  // Export CSV
-  const handleExportCSV = () => {
+  // Export CSV (live from DB for authenticated users)
+  const handleExportCSV = async () => {
     try {
-      const txs = JSON.parse(localStorage.getItem('fintrack_tx_list') || '[]')
+      setIsExportingCSV(true)
+      let txs = []
+      if (isRealUser) {
+        const res = await transactionsAPI.list({ limit: 500 })
+        txs = res.data || []
+      } else {
+        txs = JSON.parse(localStorage.getItem('fintrack_tx_list') || '[]')
+      }
       if (txs.length === 0) {
         showToast('No transactions to export. Add some transactions first!')
         return
@@ -169,6 +199,38 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
       showToast('Transactions CSV exported successfully.')
     } catch {
       showToast('Failed to generate CSV.')
+    } finally {
+      setIsExportingCSV(false)
+    }
+  }
+
+  // In-app Password Change
+  const handleChangePassword = async (e) => {
+    e.preventDefault()
+    if (newPassword.length < 6) {
+      setPasswordChangeMsg({ type: 'error', text: 'New password must be at least 6 characters long.' })
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordChangeMsg({ type: 'error', text: 'New passwords do not match.' })
+      return
+    }
+    setIsChangingPassword(true)
+    setPasswordChangeMsg(null)
+    try {
+      await authAPI.changePassword(currentPassword, newPassword)
+      setPasswordChangeMsg({ type: 'success', text: 'Password successfully changed!' })
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      showToast('Password updated successfully!')
+    } catch (err) {
+      setPasswordChangeMsg({
+        type: 'error',
+        text: err.response?.data?.detail || 'Failed to change password. Please check your current password.'
+      })
+    } finally {
+      setIsChangingPassword(false)
     }
   }
 
@@ -219,6 +281,12 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
                 className="px-3.5 py-1 rounded-full text-slate-400 hover:text-white transition"
               >
                 Dashboard
+              </button>
+              <button
+                onClick={() => onNavigate('analytics')}
+                className="px-3.5 py-1 rounded-full text-slate-400 hover:text-white transition"
+              >
+                Analytics
               </button>
               <button className="px-3.5 py-1 rounded-full bg-white/10 text-pastel-purple font-semibold shadow-sm flex items-center space-x-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-pastel-purple" />
@@ -479,10 +547,11 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
                 </p>
                 <button
                   onClick={handleExportCSV}
-                  className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white transition flex items-center justify-center space-x-1.5"
+                  disabled={isExportingCSV}
+                  className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white transition flex items-center justify-center space-x-1.5 disabled:opacity-50"
                 >
-                  <Download className="h-3.5 w-3.5" />
-                  <span>Download .CSV Spreadsheet</span>
+                  {isExportingCSV ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                  <span>{isExportingCSV ? 'Generating CSV...' : 'Download .CSV Spreadsheet'}</span>
                 </button>
               </div>
 
@@ -496,10 +565,11 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
                 </p>
                 <button
                   onClick={handleExportJSON}
-                  className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white transition flex items-center justify-center space-x-1.5"
+                  disabled={isExportingJSON}
+                  className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white transition flex items-center justify-center space-x-1.5 disabled:opacity-50"
                 >
-                  <Download className="h-3.5 w-3.5" />
-                  <span>Download .JSON Backup</span>
+                  {isExportingJSON ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                  <span>{isExportingJSON ? 'Exporting Backup...' : 'Download .JSON Backup'}</span>
                 </button>
               </div>
             </div>
@@ -529,23 +599,102 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
             <div>
               <h3 className="text-base font-bold text-white font-display">Security & Session</h3>
               <p className="text-xs text-slate-400 mt-1">
-                Manage your credentials, password recovery, and active login sessions.
+                Manage your password credentials, in-app security, and active sessions.
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#121624] border border-white/5 space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-bold text-white">Password & Authentication</h4>
-                  <p className="text-xs text-slate-400">Request a secure password reset link sent to your registered email.</p>
-                </div>
-                <button
-                  onClick={() => onNavigate('forgot-password')}
-                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 text-xs font-semibold transition"
-                >
-                  Reset Password Link
-                </button>
+            {/* In-app Password Change Card */}
+            <div className="p-5 rounded-2xl bg-[#121624] border border-white/5 space-y-4">
+              <div className="flex items-center space-x-2">
+                <Key className="h-4 w-4 text-pastel-mint" />
+                <h4 className="text-sm font-bold text-white">Change Password</h4>
               </div>
+
+              {user?.auth_provider === 'google' ? (
+                <div className="p-3.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-xs text-sky-300">
+                  You signed in using your Google Account. Password management is handled through your Google Security Settings.
+                </div>
+              ) : (
+                <form onSubmit={handleChangePassword} className="space-y-3.5 max-w-md">
+                  {passwordChangeMsg && (
+                    <div
+                      className={`p-3 rounded-xl text-xs font-semibold ${
+                        passwordChangeMsg.type === 'success'
+                          ? 'bg-pastel-mint/15 text-pastel-mint border border-pastel-mint/30'
+                          : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+                      }`}
+                    >
+                      {passwordChangeMsg.text}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1">
+                      Current Password
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Enter current password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#171C2B] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pastel-mint"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1">
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="Min 6 characters"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full px-3 py-2 bg-[#171C2B] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pastel-mint"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-mono uppercase text-slate-300 mb-1">
+                        Confirm New Password
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="Re-enter password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full px-3 py-2 bg-[#171C2B] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pastel-mint"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isChangingPassword}
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-pastel-mint to-pastel-sky text-slate-950 font-bold text-xs shadow-glow-mint hover:opacity-95 transition flex items-center space-x-2 disabled:opacity-50"
+                  >
+                    {isChangingPassword && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-950" />}
+                    <span>{isChangingPassword ? 'Updating Password...' : 'Update Password'}</span>
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {/* Email Reset Link Fallback */}
+            <div className="p-4 rounded-2xl bg-[#121624] border border-white/5 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-bold text-white">Forgot your current password?</h4>
+                <p className="text-xs text-slate-400 mt-0.5">Send a secure one-time password reset link to your email.</p>
+              </div>
+              <button
+                onClick={() => onNavigate('forgot-password')}
+                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 text-xs font-semibold transition"
+              >
+                Send Reset Link
+              </button>
             </div>
           </div>
         )}
