@@ -15,12 +15,17 @@ import {
   Layers,
   LogOut,
   Loader2,
-  CalendarDays
+  CalendarDays,
+  FileText,
+  Printer
 } from 'lucide-react'
 import { transactionsAPI, categoriesAPI } from '../services/api'
 import { formatINR, formatINRLarge, TRANSACTION_CATEGORIES } from './HomePage'
+import NotificationBell from '../components/NotificationBell'
+import ReportModal from '../components/ReportModal'
 
 export default function AnalyticsPage({ user, onNavigate, onLogout }) {
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const isRealUser = Boolean(
     user &&
     user.auth_provider !== 'demo' &&
@@ -255,6 +260,10 @@ export default function AnalyticsPage({ user, onNavigate, onLogout }) {
               <span className="hidden sm:inline">Back to Dashboard</span>
               <span className="sm:hidden">Back</span>
             </button>
+
+            {/* Notification Bell */}
+            <NotificationBell isRealUser={isRealUser} />
+
             <button
               onClick={() => {
                 if (onLogout) onLogout()
@@ -286,26 +295,38 @@ export default function AnalyticsPage({ user, onNavigate, onLogout }) {
             </p>
           </div>
 
-          {/* Timeframe selector pills */}
-          <div className="flex items-center space-x-1 bg-white/5 p-1 rounded-2xl border border-white/10 text-xs self-start sm:self-auto">
-            {[
-              { id: '30d', label: '30 Days' },
-              { id: '90d', label: '90 Days' },
-              { id: '1y', label: '1 Year' },
-              { id: 'all', label: 'All Time' }
-            ].map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTimeframe(t.id)}
-                className={`px-3.5 py-1.5 rounded-xl font-medium transition ${
-                  timeframe === t.id
-                    ? 'bg-pastel-sky text-slate-950 font-bold shadow-glow-sky'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            {/* Statements & PDF Button */}
+            <button
+              onClick={() => setIsReportModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-pastel-sky transition flex items-center space-x-1.5"
+              title="Generate date-range financial statement and PDF"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              <span>Statements & PDF</span>
+            </button>
+
+            {/* Timeframe selector pills */}
+            <div className="flex items-center space-x-1 bg-white/5 p-1 rounded-2xl border border-white/10 text-xs">
+              {[
+                { id: '30d', label: '30 Days' },
+                { id: '90d', label: '90 Days' },
+                { id: '1y', label: '1 Year' },
+                { id: 'all', label: 'All Time' }
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTimeframe(t.id)}
+                  className={`px-3.5 py-1.5 rounded-xl font-medium transition ${
+                    timeframe === t.id
+                      ? 'bg-pastel-sky text-slate-950 font-bold shadow-glow-sky'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -578,6 +599,14 @@ export default function AnalyticsPage({ user, onNavigate, onLogout }) {
           </>
         )}
       </main>
+
+      {/* DATE-RANGE CUSTOM REPORT & PDF STATEMENT MODAL */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        user={user}
+        allTransactions={transactions}
+      />
     </div>
   )
 }

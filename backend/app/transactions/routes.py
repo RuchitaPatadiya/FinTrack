@@ -13,6 +13,7 @@ from backend.app.transactions.schemas import (
     TransactionResponse,
     TransactionSummaryResponse
 )
+from backend.app.notifications.services import check_budget_triggers
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
@@ -80,6 +81,13 @@ def create_transaction(
     db.add(new_tx)
     db.commit()
     db.refresh(new_tx)
+
+    if new_tx.type == "expense":
+        try:
+            check_budget_triggers(db, current_user.id, new_tx.date)
+        except Exception:
+            pass
+
     return new_tx
 
 @router.get("/summary", response_model=TransactionSummaryResponse)
@@ -150,6 +158,13 @@ def update_transaction(
 
     db.commit()
     db.refresh(tx)
+
+    if tx.type == "expense":
+        try:
+            check_budget_triggers(db, current_user.id, tx.date)
+        except Exception:
+            pass
+
     return tx
 
 @router.delete("/{transaction_id}", status_code=status.HTTP_200_OK)

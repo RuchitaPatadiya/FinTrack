@@ -82,4 +82,21 @@ export const budgetsAPI = {
   delete: (id) => api.delete(`/budgets/${id}`),
 }
 
+export const subscriptionsAPI = {
+  list: (params) => api.get('/subscriptions', { params }),
+  getSummary: () => api.get('/subscriptions/summary'),
+  create: (data) => api.post('/subscriptions', data),
+  update: (id, data) => api.put(`/subscriptions/${id}`, data),
+  delete: (id) => api.delete(`/subscriptions/${id}`),
+}
+
+export const notificationsAPI = {
+  list: () => api.get('/notifications'),
+  markAsRead: (id) => api.patch(`/notifications/${id}/read`),
+  markAllAsRead: () => api.post('/notifications/read-all'),
+  delete: (id) => api.delete(`/notifications/${id}`),
+  clearRead: () => api.delete('/notifications'),
+}
+
 export default api
+

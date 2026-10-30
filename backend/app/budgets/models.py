@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Uni
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from backend.app.core.database import Base
+from backend.app.categories.models import Category  # noqa: F401
 
 class Budget(Base):
     __tablename__ = "budgets"
