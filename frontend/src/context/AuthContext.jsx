@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { authAPI } from '../services/api'
 
-//Added Transaction
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
