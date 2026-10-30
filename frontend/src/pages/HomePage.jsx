@@ -27,9 +27,13 @@ import {
   Loader2,
   Pencil,
   Tag,
-  Sliders
+  Sliders,
+  FileText
 } from 'lucide-react'
 import { transactionsAPI, goalsAPI, categoriesAPI, budgetsAPI } from '../services/api'
+import NotificationBell from '../components/NotificationBell'
+import SubscriptionsManager from '../components/SubscriptionsManager'
+import ReportModal from '../components/ReportModal'
 
 // Indian Rupee formatting helper
 export const formatINR = (val) => {
@@ -421,6 +425,7 @@ export default function HomePage({ onNavigate, user, onLogout }) {
   const [selectedGoal, setSelectedGoal] = useState(null)
   const [depositAmount, setDepositAmount] = useState('5000')
   const [toastMessage, setToastMessage] = useState('')
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
 
   // New Transaction Form State
   const [txType, setTxType] = useState('expense')
@@ -1068,6 +1073,9 @@ export default function HomePage({ onNavigate, user, onLogout }) {
               <span>Add Transaction</span>
             </button>
 
+            {/* Notification Bell with live unread badge and drawer */}
+            <NotificationBell isRealUser={isRealUser} />
+
             {/* User Profile Avatar */}
             <button
               onClick={() => onNavigate('profile')}
@@ -1111,6 +1119,14 @@ export default function HomePage({ onNavigate, user, onLogout }) {
           </div>
 
           <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setIsReportModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl glass-panel hover:bg-white/10 text-xs font-semibold text-slate-200 border border-white/10 transition flex items-center space-x-1.5"
+              title="Generate date-range financial statement and PDF"
+            >
+              <FileText className="h-3.5 w-3.5 text-pastel-mint" />
+              <span>Statements & PDF</span>
+            </button>
             <button
               onClick={() => setIsNewGoalModalOpen(true)}
               className="px-3.5 py-2 rounded-xl glass-panel hover:bg-white/10 text-xs font-semibold text-slate-200 border border-white/10 transition flex items-center space-x-1.5"
@@ -1409,6 +1425,9 @@ export default function HomePage({ onNavigate, user, onLogout }) {
             )}
           </div>
         </section>
+
+        {/* RECURRING SUBSCRIPTIONS MODULE */}
+        <SubscriptionsManager isRealUser={isRealUser} onToast={showToast} />
 
         {/* TWO COLUMN SECTION: TRANSACTIONS & REAL EXPENSE BREAKDOWN */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -2437,6 +2456,15 @@ export default function HomePage({ onNavigate, user, onLogout }) {
           </div>
         </div>
       )}
+
+      {/* DATE-RANGE CUSTOM REPORT & PDF STATEMENT MODAL */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        user={user}
+        allTransactions={transactions}
+        onToast={showToast}
+      />
 
     </div>
   )

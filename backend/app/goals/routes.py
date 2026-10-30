@@ -11,6 +11,7 @@ from backend.app.goals.schemas import (
     GoalUpdate,
     GoalResponse
 )
+from backend.app.notifications.services import check_goal_triggers
 
 router = APIRouter(prefix="/goals", tags=["Savings Goals"])
 
@@ -48,6 +49,12 @@ def create_goal(
     db.add(new_goal)
     db.commit()
     db.refresh(new_goal)
+
+    try:
+        check_goal_triggers(db, current_user.id, new_goal.name, new_goal.current, new_goal.target)
+    except Exception:
+        pass
+
     return new_goal
 
 @router.put("/{goal_id}", response_model=GoalResponse)
@@ -90,6 +97,12 @@ def update_goal(
 
     db.commit()
     db.refresh(goal)
+
+    try:
+        check_goal_triggers(db, current_user.id, goal.name, goal.current, goal.target)
+    except Exception:
+        pass
+
     return goal
 
 @router.delete("/{goal_id}", status_code=status.HTTP_200_OK)

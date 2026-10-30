@@ -19,9 +19,13 @@ import {
   AlertTriangle,
   CreditCard,
   Loader2,
-  Key
+  Key,
+  FileText,
+  Printer
 } from 'lucide-react'
 import { authAPI, transactionsAPI, goalsAPI } from '../services/api'
+import NotificationBell from '../components/NotificationBell'
+import ReportModal from '../components/ReportModal'
 
 const CURRENCIES = [
   { code: 'INR', symbol: '₹', label: 'Indian Rupee (₹)' },
@@ -79,6 +83,8 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
   const [isSaved, setIsSaved] = useState(false)
   const [isExportingJSON, setIsExportingJSON] = useState(false)
   const [isExportingCSV, setIsExportingCSV] = useState(false)
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  const [transactions, setTransactions] = useState([])
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -91,6 +97,22 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
     user.auth_provider !== 'guest' &&
     localStorage.getItem('fintrack_token')
   )
+
+  useEffect(() => {
+    if (isRealUser) {
+      transactionsAPI
+        .list({ limit: 500 })
+        .then((res) => {
+          if (Array.isArray(res.data)) setTransactions(res.data)
+        })
+        .catch(() => {})
+    } else {
+      try {
+        const saved = localStorage.getItem('fintrack_tx_list')
+        if (saved) setTransactions(JSON.parse(saved))
+      } catch {}
+    }
+  }, [isRealUser])
 
   // Save to localStorage and optionally sync name to backend DB
   const handleSavePreferences = async () => {
@@ -305,6 +327,9 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
               <span className="hidden sm:inline">Back to Dashboard</span>
               <span className="sm:hidden">Back</span>
             </button>
+
+            {/* Notification Bell */}
+            <NotificationBell isRealUser={isRealUser} />
 
             <button
               onClick={handleSavePreferences}
@@ -532,8 +557,33 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
             <div>
               <h3 className="text-base font-bold text-white font-display">Data Management & Exports</h3>
               <p className="text-xs text-slate-400 mt-1">
-                Export your Indian Rupee financial records for spreadsheets or local archival.
+                Export your Indian Rupee financial records for spreadsheets, PDF statements, or local archival.
               </p>
+            </div>
+
+            {/* FEATURED: Custom Date-Range Financial Statement & Printable PDF Generator */}
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-pastel-mint/10 via-pastel-sky/10 to-transparent border border-pastel-mint/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <div className="p-1.5 rounded-lg bg-pastel-mint/20 text-pastel-mint">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <h4 className="text-sm font-bold text-white">Date-Range Financial Statement & Printable PDF</h4>
+                  <span className="px-2 py-0.5 rounded-full bg-pastel-mint/20 text-pastel-mint font-mono text-[10px] font-bold">
+                    Official Statement
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 max-w-xl">
+                  Generate an official printable financial statement with FinTrack header, cashflow summary, category spending breakdown, and itemized ledger table for custom periods (Q3 2026, Last 6 Months, or custom dates).
+                </p>
+              </div>
+              <button
+                onClick={() => setIsReportModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-pastel-mint to-pastel-sky text-slate-950 font-bold text-xs shadow-glow-mint hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center space-x-2 flex-shrink-0"
+              >
+                <Printer className="h-4 w-4 stroke-[2.5]" />
+                <span>Open Statement Generator</span>
+              </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -722,6 +772,15 @@ export default function ProfilePage({ user, onNavigate, onLogout }) {
           </button>
         </div>
       </main>
+
+      {/* DATE-RANGE CUSTOM REPORT & PDF STATEMENT MODAL */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        user={user}
+        allTransactions={transactions}
+        onToast={showToast}
+      />
     </div>
   )
 }
